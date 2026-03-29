@@ -1,5 +1,6 @@
 import AdminTextInput from './AdminTextInput'
 import PrimarySecondaryActions from './PrimarySecondaryActions'
+import { normalizeTextInput } from '../utils/psrUtils'
 
 export default function ChallengeAdminFormSection({
   label,
@@ -22,7 +23,7 @@ export default function ChallengeAdminFormSection({
       <div style={{ ...formGrid, marginTop: 14 }}>
         <AdminTextInput
           value={playerValue}
-          onChange={(e) => setPlayerValue(normalizeText(e.target.value))}
+          onChange={(e) => setPlayerValue(normalizeTextInput(e.target.value))}
           placeholder="PILOTO"
           style={input}
         />

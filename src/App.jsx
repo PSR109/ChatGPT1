@@ -12,6 +12,7 @@ import {
   formatGap,
   getGameOrderIndex,
 } from './utils/psrUtils'
+import { buildDirectWhatsappLink, buildRankingAlertWhatsappMessage } from './utils/whatsappHelper'
 import GeneralRankingSection from './components/GeneralRankingSection'
 import BookingsSection from './components/BookingsSection'
 import ChallengeSection from './components/ChallengeSection'
@@ -21,6 +22,8 @@ import LayoutHeader from './components/LayoutHeader'
 import LapTimeEditorSection from './components/LapTimeEditorSection'
 import PilotProfileSection from './components/PilotProfileSection'
 import CommercialSection from './components/CommercialSection'
+import ForumSection from './components/ForumSection'
+import RankingAlertQueueSection from './components/RankingAlertQueueSection'
 import {
   page,
   container,
@@ -180,6 +183,8 @@ export default function App() {
   const [weeklyEntries, setWeeklyEntries] = useState([])
   const [monthlyEntries, setMonthlyEntries] = useState([])
   const [bookings, setBookings] = useState([])
+  const [rankingAlertEvents, setRankingAlertEvents] = useState([])
+  const [rankingAlertMessage, setRankingAlertMessage] = useState('')
 
   const [generalGame, setGeneralGame] = useState('TODOS')
   const [generalTrack, setGeneralTrack] = useState('TODOS')
@@ -223,6 +228,8 @@ export default function App() {
   const [lapEditTrack, setLapEditTrack] = useState('')
   const [lapEditCar, setLapEditCar] = useState('')
   const [lapEditTime, setLapEditTime] = useState('')
+  const [lapEditWhatsapp, setLapEditWhatsapp] = useState('')
+  const [lapEditRankingAlertOptIn, setLapEditRankingAlertOptIn] = useState(false)
   const [lapEditMessage, setLapEditMessage] = useState('')
 
   useEffect(() => {
@@ -253,6 +260,7 @@ export default function App() {
       loadWeeklyChallenge(),
       loadMonthlyChallenge(),
       loadBookings(),
+      loadRankingAlertEvents(),
     ])
   }
 
@@ -358,6 +366,22 @@ export default function App() {
     }
 
     setBookings(data || [])
+  }
+
+  async function loadRankingAlertEvents() {
+    const { data, error } = await supabase
+      .from('ranking_alert_events')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(20)
+
+    if (error) {
+      console.log('ranking_alert_events error:', error)
+      setRankingAlertEvents([])
+      return
+    }
+
+    setRankingAlertEvents(data || [])
   }
 
   const normalizedLapTimes = useMemo(() => {
@@ -984,6 +1008,91 @@ export default function App() {
     await loadChallengeEntries('monthly', monthlyChallenge.id, setMonthlyEntries)
   }
 
+
+  async function tryCreateRankingAlert(newPayload) {
+    const cleanPlayer = normalizeText(newPayload.player)
+
+    const { data: existingRows, error: existingRowsError } = await supabase
+      .from('lap_times')
+      .select('id, player, game, track, time, time_ms, whatsapp_phone, ranking_alert_opt_in')
+      .eq('game', newPayload.game)
+      .eq('track', newPayload.track)
+      .order('time_ms', { ascending: true })
+      .limit(10)
+
+    if (existingRowsError) {
+      console.log('ranking alert compare error:', existingRowsError)
+      return
+    }
+
+    const rivalLeader = (existingRows || []).find((row) => normalizeText(row.player) !== cleanPlayer)
+
+    if (!rivalLeader) return
+    if (Number(newPayload.time_ms || 0) >= Number(rivalLeader.time_ms || 0)) return
+
+    const targetPhone = normalizePhone(rivalLeader.whatsapp_phone || '')
+    const hasOptIn = Boolean(rivalLeader.ranking_alert_opt_in)
+
+    if (!targetPhone || !hasOptIn) return
+
+    const preview = buildRankingAlertWhatsappMessage({
+      targetPlayer: rivalLeader.player,
+      challengerPlayer: newPayload.player,
+      game: newPayload.game,
+      track: newPayload.track,
+      oldTime: rivalLeader.time,
+      newTime: newPayload.time,
+    })
+
+    const { error: alertInsertError } = await supabase.from('ranking_alert_events').insert([
+      {
+        target_player: normalizeText(rivalLeader.player),
+        target_phone: targetPhone,
+        challenger_player: normalizeText(newPayload.player),
+        game: newPayload.game,
+        track: newPayload.track,
+        previous_time: rivalLeader.time,
+        new_time: newPayload.time,
+        message_preview: preview,
+        status: 'PENDING',
+      },
+    ])
+
+    if (alertInsertError) {
+      console.log('ranking alert insert error:', alertInsertError)
+      return
+    }
+
+    setRankingAlertMessage(`Alerta creada para ${normalizeText(rivalLeader.player)}`)
+    await loadRankingAlertEvents()
+  }
+
+  async function markRankingAlertStatus(alertId, status) {
+    const { error } = await supabase
+      .from('ranking_alert_events')
+      .update({ status, processed_at: new Date().toISOString() })
+      .eq('id', alertId)
+
+    if (error) {
+      console.log('ranking alert status error:', error)
+      setRankingAlertMessage('Error al actualizar alerta')
+      return
+    }
+
+    setRankingAlertMessage(
+      status === 'SENT' ? 'Alerta marcada como enviada' : status === 'CANCELLED' ? 'Alerta descartada' : 'Alerta actualizada'
+    )
+    await loadRankingAlertEvents()
+  }
+
+  async function markRankingAlertAsSent(alertId) {
+    await markRankingAlertStatus(alertId, 'SENT')
+  }
+
+  async function dismissRankingAlert(alertId) {
+    await markRankingAlertStatus(alertId, 'CANCELLED')
+  }
+
   function startEditLapTime(entry) {
     if (!isAdmin) return
     setLapEditId(entry.id)
@@ -993,6 +1102,8 @@ export default function App() {
     setLapEditTrack(normalizeText(entry.track))
     setLapEditCar(normalizeText(entry.car))
     setLapEditTime(entry.time)
+    setLapEditWhatsapp(normalizePhone(entry.whatsapp_phone || ''))
+    setLapEditRankingAlertOptIn(Boolean(entry.ranking_alert_opt_in))
     setLapEditMessage('Editando tiempo general')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -1005,6 +1116,8 @@ export default function App() {
     setLapEditTrack('')
     setLapEditCar('')
     setLapEditTime('')
+    setLapEditWhatsapp('')
+    setLapEditRankingAlertOptIn(false)
     setLapEditMessage('')
   }
 
@@ -1031,6 +1144,8 @@ export default function App() {
       car: normalizeText(lapEditCar),
       time: lapEditTime.trim(),
       time_ms: convertToMs(lapEditTime),
+      whatsapp_phone: normalizePhone(lapEditWhatsapp),
+      ranking_alert_opt_in: Boolean(lapEditRankingAlertOptIn),
     }
 
     if (lapEditId) {
@@ -1055,6 +1170,7 @@ export default function App() {
         return
       }
 
+      await tryCreateRankingAlert(payload)
       setLapEditMessage('Tiempo creado correctamente')
     }
 
@@ -1069,6 +1185,8 @@ export default function App() {
       setLapEditTrack('')
       setLapEditCar('')
       setLapEditTime('')
+      setLapEditWhatsapp('')
+      setLapEditRankingAlertOptIn(false)
     }
   }
 
@@ -1270,6 +1388,46 @@ export default function App() {
     setBookingMessage('Reserva preconfigurada desde sección comercial: Práctica')
   }
 
+  function goToBookingFromRanking({ rankingType = 'GENERAL', position = 99, gap = '-', game = '', track = '', player = '' } = {}) {
+    const rankingLabel =
+      rankingType === 'WEEKLY' ? 'desafío semanal' : rankingType === 'MONTHLY' ? 'desafío mensual' : 'ranking general'
+
+    const isLeader = Number(position) === 1
+    const isTopThree = Number(position) > 1 && Number(position) <= 3
+    const suggestedMinutes = isLeader ? 30 : isTopThree ? 45 : 60
+
+    setViewMode('BOOKINGS')
+    setBookingKind('LOCAL')
+    setBookingConfig(isLeader ? '1_PRO' : '1_ESTANDAR')
+    setBookingDuration(suggestedMinutes)
+
+    const focusLine = isLeader
+      ? `Defiende tu puesto en ${rankingLabel}.`
+      : isTopThree
+        ? `Estás peleando arriba en ${rankingLabel}.`
+        : `Tienes espacio para subir en ${rankingLabel}.`
+
+    const gapLine = !isLeader && gap && gap !== '-'
+      ? `Te separan ${gap} del líder en ${game || '-'} · ${track || '-'}.`
+      : `Combo objetivo: ${game || '-'} · ${track || '-'}.`
+
+    const playerLine = player ? `Piloto objetivo: ${normalizeText(player)}.` : ''
+
+    setBookingMessage(
+      [
+        focusLine,
+        gapLine,
+        playerLine,
+        `Reserva sugerida: ${suggestedMinutes} min para ir por la revancha.`,
+      ]
+        .filter(Boolean)
+        .join(' ')
+    )
+
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+
   useEffect(() => {
     const handler = (event) => {
       setViewMode('BOOKINGS')
@@ -1317,6 +1475,10 @@ export default function App() {
               setLapEditCar={setLapEditCar}
               lapEditTime={lapEditTime}
               setLapEditTime={setLapEditTime}
+              lapEditWhatsapp={lapEditWhatsapp}
+              setLapEditWhatsapp={setLapEditWhatsapp}
+              lapEditRankingAlertOptIn={lapEditRankingAlertOptIn}
+              setLapEditRankingAlertOptIn={setLapEditRankingAlertOptIn}
               lapEditMessage={lapEditMessage}
               createOrUpdateLapTime={createOrUpdateLapTime}
               isEditingLapTime={Boolean(lapEditId)}
@@ -1329,6 +1491,21 @@ export default function App() {
               buttonRow={buttonRow}
               button={button}
               buttonSecondary={buttonSecondary}
+              messageStyle={messageStyle}
+            />
+
+            <RankingAlertQueueSection
+              isAdmin={isAdmin}
+              alerts={rankingAlertEvents}
+              alertMessage={rankingAlertMessage}
+              onMarkSent={markRankingAlertAsSent}
+              onDismiss={dismissRankingAlert}
+              buildDirectWhatsappLink={buildDirectWhatsappLink}
+              card={card}
+              sectionTitle={sectionTitle}
+              button={button}
+              buttonSecondary={buttonSecondary}
+              miniDanger={miniDanger}
               messageStyle={messageStyle}
             />
 
@@ -1357,6 +1534,7 @@ export default function App() {
               buttonRowSmall={buttonRowSmall}
               miniButton={miniButton}
               miniDanger={miniDanger}
+              onReserveFromRanking={goToBookingFromRanking}
             />
           </>
         )}
@@ -1404,6 +1582,7 @@ export default function App() {
             buttonRowSmall={buttonRowSmall}
             miniButton={miniButton}
             miniDanger={miniDanger}
+            onReserveFromChallenge={goToBookingFromRanking}
           />
         )}
 
@@ -1450,6 +1629,7 @@ export default function App() {
             buttonRowSmall={buttonRowSmall}
             miniButton={miniButton}
             miniDanger={miniDanger}
+            onReserveFromChallenge={goToBookingFromRanking}
           />
         )}
 
@@ -1500,6 +1680,12 @@ export default function App() {
             table={table}
             th={th}
             td={td}
+          />
+        )}
+
+        {viewMode === 'FORUM' && (
+          <ForumSection
+            isAdmin={isAdmin}
           />
         )}
 

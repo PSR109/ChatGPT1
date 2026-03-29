@@ -43,13 +43,16 @@ export function formatDateChile(dateValue) {
   return `${d}-${m}-${y}`
 }
 
-export function normalizeText(value) {
+export function normalizeTextInput(value) {
   return String(value || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/\s+/g, ' ')
-    .trim()
     .toUpperCase()
+}
+
+export function normalizeText(value) {
+  return normalizeTextInput(value).trim()
 }
 
 export function normalizePhone(value) {

@@ -28,11 +28,11 @@ function AdminLapEditor({
       <h2 style={sectionTitle}>✏️ Editar tiempo general</h2>
 
       <div style={formGrid}>
-        <input value={lapEditPlayer} onChange={(e) => setLapEditPlayer(normalizeText(e.target.value))} placeholder="PILOTO" style={input} />
-        <input value={lapEditCountry} onChange={(e) => setLapEditCountry(normalizeText(e.target.value))} placeholder="PAÍS" style={input} />
-        <input value={lapEditGame} onChange={(e) => setLapEditGame(normalizeText(e.target.value))} placeholder="JUEGO" style={input} />
-        <input value={lapEditTrack} onChange={(e) => setLapEditTrack(normalizeText(e.target.value))} placeholder="CIRCUITO / ETAPA" style={input} />
-        <input value={lapEditCar} onChange={(e) => setLapEditCar(normalizeText(e.target.value))} placeholder="AUTO" style={input} />
+        <input value={lapEditPlayer} onChange={(e) => setLapEditPlayer(normalizeTextInput(e.target.value))} placeholder="PILOTO" style={input} />
+        <input value={lapEditCountry} onChange={(e) => setLapEditCountry(normalizeTextInput(e.target.value))} placeholder="PAÍS" style={input} />
+        <input value={lapEditGame} onChange={(e) => setLapEditGame(normalizeTextInput(e.target.value))} placeholder="JUEGO" style={input} />
+        <input value={lapEditTrack} onChange={(e) => setLapEditTrack(normalizeTextInput(e.target.value))} placeholder="CIRCUITO / ETAPA" style={input} />
+        <input value={lapEditCar} onChange={(e) => setLapEditCar(normalizeTextInput(e.target.value))} placeholder="AUTO" style={input} />
         <input value={lapEditTime} onChange={(e) => setLapEditTime(e.target.value)} placeholder="TIEMPO (1:28.500)" style={input} />
       </div>
 

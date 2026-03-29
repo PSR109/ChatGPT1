@@ -89,3 +89,68 @@ export function buildBookingWhatsappLink(text) {
   const cleanPhone = String(PSR_PHONE).replace(/\D/g, '')
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text || '')}`
 }
+
+export function buildDirectWhatsappLink(phone, text) {
+  const cleanPhone = String(phone || '').replace(/\D/g, '')
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text || '')}`
+}
+
+function getRankingTypeCopy(rankingType) {
+  if (rankingType === 'weekly' || rankingType === 'WEEKLY') {
+    return {
+      headline: 'Te quitaron el liderato semanal en PSR.',
+      contextLabel: 'Desafío semanal',
+      urgency: 'El semanal se mueve rápido y cada intento cuenta.',
+      closing: '¿Quieres tu revancha esta semana?',
+    }
+  }
+
+  if (rankingType === 'monthly' || rankingType === 'MONTHLY') {
+    return {
+      headline: 'Perdiste el liderato mensual en PSR.',
+      contextLabel: 'Desafío mensual',
+      urgency: 'Aún estás a tiempo de recuperar tu lugar en el ranking del mes.',
+      closing: '¿Quieres volver por el puesto alto este mes?',
+    }
+  }
+
+  return {
+    headline: 'Te mejoraron el tiempo en el ranking general de PSR.',
+    contextLabel: 'Ranking general',
+    urgency: 'Es una buena oportunidad para volver y bajar tu marca.',
+    closing: '¿Quieres tu revancha hoy?',
+  }
+}
+
+export function buildRankingAlertWhatsappMessage({
+  rankingType,
+  targetPlayer,
+  displacedPlayer,
+  challengerPlayer,
+  game,
+  track,
+  contextLabel,
+  oldTime,
+  previousTime,
+  newTime,
+}) {
+  const copy = getRankingTypeCopy(rankingType)
+  const safePlayer = targetPlayer || displacedPlayer || 'piloto'
+  const safeContext = contextLabel || [game, track].filter(Boolean).join(' · ') || copy.contextLabel || 'PSR'
+  const safePrevious = oldTime || previousTime || '--'
+  const safeNew = newTime || '--'
+  const safeChallenger = challengerPlayer || 'otro piloto'
+
+  return [
+    `Hola ${safePlayer}. ${copy.headline}`,
+    '',
+    `${copy.contextLabel}: ${safeContext}`,
+    `Tu tiempo: ${safePrevious}`,
+    `Nuevo líder: ${safeChallenger}`,
+    `Nuevo tiempo líder: ${safeNew}`,
+    '',
+    copy.urgency,
+    `${copy.closing} Te puedo dejar una reserva lista de 30 o 60 min en Patagonia SimRacing.`,
+    'Si quieres, respóndeme con REVANCHA y te envío horarios disponibles.',
+  ].join('\n')
+}

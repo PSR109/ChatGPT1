@@ -3,7 +3,7 @@ export default function SectionContentSpacing({ children }) {
     <div
       style={{
         display: 'grid',
-        gap: 18,
+        gap: 'clamp(14px, 2.6vw, 20px)',
       }}
     >
       {children}

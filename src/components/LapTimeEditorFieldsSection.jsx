@@ -1,4 +1,5 @@
 import AdminTextInput from './AdminTextInput'
+import { normalizeTextInput } from '../utils/psrUtils'
 
 export default function LapTimeEditorFieldsSection({
   lapEditPlayer,
@@ -21,31 +22,31 @@ export default function LapTimeEditorFieldsSection({
     <div style={formGrid}>
       <AdminTextInput
         value={lapEditPlayer}
-        onChange={(e) => setLapEditPlayer(normalizeText(e.target.value))}
+        onChange={(e) => setLapEditPlayer(normalizeTextInput(e.target.value))}
         placeholder="PILOTO"
         style={input}
       />
       <AdminTextInput
         value={lapEditCountry}
-        onChange={(e) => setLapEditCountry(normalizeText(e.target.value))}
+        onChange={(e) => setLapEditCountry(normalizeTextInput(e.target.value))}
         placeholder="PAÍS"
         style={input}
       />
       <AdminTextInput
         value={lapEditGame}
-        onChange={(e) => setLapEditGame(normalizeText(e.target.value))}
+        onChange={(e) => setLapEditGame(normalizeTextInput(e.target.value))}
         placeholder="JUEGO"
         style={input}
       />
       <AdminTextInput
         value={lapEditTrack}
-        onChange={(e) => setLapEditTrack(normalizeText(e.target.value))}
+        onChange={(e) => setLapEditTrack(normalizeTextInput(e.target.value))}
         placeholder="CIRCUITO / ETAPA"
         style={input}
       />
       <AdminTextInput
         value={lapEditCar}
-        onChange={(e) => setLapEditCar(normalizeText(e.target.value))}
+        onChange={(e) => setLapEditCar(normalizeTextInput(e.target.value))}
         placeholder="AUTO"
         style={input}
       />
