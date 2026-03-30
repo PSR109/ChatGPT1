@@ -868,6 +868,7 @@ export default function App() {
     }
 
     const payload = {
+      title: `${game} | ${track} | ${car}`,
       game,
       track,
       car,

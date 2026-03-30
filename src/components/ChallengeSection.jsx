@@ -10,6 +10,7 @@ import {
   isChallengeExpired,
 } from '../utils/challengeUtils'
 import { buildRankingSectionMeta, getRankingRowAccent } from '../utils/rankingUtils'
+import { normalizeTextInput } from '../utils/psrUtils'
 
 function StatBox({ label, value, strong = false }) {
   return (
@@ -197,9 +198,9 @@ function ChallengeCreateForm({
       <div style={{ textAlign: 'center', opacity: 0.76, fontSize: 13 }}>
         Define juego, pista, auto y cierre del reto desde el mismo panel.
       </div>
-      <input value={createGameValue} onChange={(e) => setCreateGameValue(e.target.value)} placeholder='JUEGO' style={input} />
-      <input value={createTrackValue} onChange={(e) => setCreateTrackValue(e.target.value)} placeholder='CIRCUITO / ETAPA' style={input} />
-      <input value={createCarValue} onChange={(e) => setCreateCarValue(e.target.value)} placeholder='AUTO' style={input} />
+      <input value={createGameValue} onChange={(e) => setCreateGameValue(normalizeTextInput(e.target.value))} placeholder='JUEGO' style={input} />
+      <input value={createTrackValue} onChange={(e) => setCreateTrackValue(normalizeTextInput(e.target.value))} placeholder='CIRCUITO / ETAPA' style={input} />
+      <input value={createCarValue} onChange={(e) => setCreateCarValue(normalizeTextInput(e.target.value))} placeholder='AUTO' style={input} />
       <input type='datetime-local' value={createEndAtValue} onChange={(e) => setCreateEndAtValue(e.target.value)} style={input} />
       <button
         onClick={onCreateChallenge}
@@ -248,7 +249,7 @@ function ChallengeEntryForm({
       <div style={{ textAlign: 'center', opacity: 0.76, fontSize: 13 }}>
         Panel rápido para ajustar registros sin salir del desafío activo.
       </div>
-      <input value={playerValue} onChange={(e) => setPlayerValue(e.target.value)} placeholder='PILOTO' style={input} disabled={expired} />
+      <input value={playerValue} onChange={(e) => setPlayerValue(normalizeTextInput(e.target.value))} placeholder='PILOTO' style={input} disabled={expired} />
       <input value={timeValue} onChange={(e) => setTimeValue(e.target.value)} placeholder='TIEMPO EJ: 1:28.500' style={input} disabled={expired} />
       <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
         <button

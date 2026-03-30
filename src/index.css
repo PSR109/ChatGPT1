@@ -66,3 +66,15 @@ img {
     font-size: 15px;
   }
 }
+
+
+input,
+textarea,
+select {
+  text-transform: uppercase;
+}
+
+input::placeholder,
+textarea::placeholder {
+  text-transform: uppercase;
+}

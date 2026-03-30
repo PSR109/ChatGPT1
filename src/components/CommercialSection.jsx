@@ -8,21 +8,21 @@ const credibilityStats = [
   { value: '3', label: 'simuladores listos' },
   { value: '2 + 1', label: 'estándar y pro' },
   { value: 'F1 · Rally · GT', label: 'categorías fuertes' },
-  { value: 'Reserva rápida', label: 'desde el teléfono' },
+  { value: 'Reserva fácil', label: 'desde el teléfono' },
 ]
 
 const benefitCards = [
   {
-    title: 'Se entiende rápido',
-    text: 'Aunque sea tu primera vez, la experiencia se adapta y partes corriendo sin enredos.',
+    title: 'Fácil de disfrutar',
+    text: 'Aunque sea tu primera vez, te ayudamos a empezar rápido y disfrutar desde el primer intento.',
   },
   {
-    title: 'Se vuelve desafío',
-    text: 'No es solo probar. Hay rankings, tiempos y ganas reales de volver a mejorar.',
+    title: 'Te dan ganas de volver',
+    text: 'No es solo venir una vez: están los tiempos, los rankings y esas ganas de volver a hacerlo mejor.',
   },
   {
-    title: 'Sirve para distintos planes',
-    text: 'Panorama casual, regalo distinto, empresas, eventos y gente competitiva.',
+    title: 'Funciona para distintos planes',
+    text: 'Sirve como panorama, regalo, celebración, salida con amigos o actividad para empresas.',
   },
 ]
 
@@ -67,18 +67,18 @@ const decisionCards = [
 
 const offerCards = [
   {
-    title: 'Primera vez / panorama',
+    title: 'Personas / parejas / familias',
     text: 'Para venir solo, en pareja, con amigos o familia. Fácil de entender y entretenido desde el primer intento.',
-    points: ['No necesitas experiencia', 'Ideal para probar algo distinto', 'Reserva rápida desde el teléfono'],
+    points: ['No necesitas experiencia', 'Ideal para probar algo distinto', 'Reserva fácil desde el teléfono'],
     cta: 'Reservar sesión',
     segment: 'aprender',
     message: 'Hola, quiero reservar una sesión en Patagonia SimRacing.',
   },
   {
-    title: 'Empresas / team building',
+    title: 'Empresas',
     text: 'Actividad distinta, competitiva y memorable para equipos, marcas o clientes.',
     points: ['Dinámica competitiva real', 'Formato adaptable al grupo', 'Cotización directa por WhatsApp'],
-    cta: 'Cotizar para empresa',
+    cta: 'Cotizar empresa',
     segment: 'empresa',
     message: 'Hola, quiero cotizar una actividad para empresas en Patagonia SimRacing.',
   },
@@ -131,12 +131,12 @@ const faqCards = [
     text: 'Sí. Está pensado para que cualquier persona pueda entenderlo rápido y disfrutarlo.',
   },
   {
-    title: '¿Es solo para fanáticos?',
-    text: 'No. También funciona muy bien como panorama distinto, regalo o actividad grupal.',
+    title: '¿Es solo para quienes ya saben de autos o simracing?',
+    text: 'No. También funciona muy bien como panorama distinto, regalo, salida en pareja, familia o actividad grupal.',
   },
   {
-    title: '¿Se puede cotizar algo especial?',
-    text: 'Sí. Empresas, eventos, grupos y formatos especiales se pueden conversar directo por WhatsApp.',
+    title: '¿Se puede hacer algo especial para grupos o empresas?',
+    text: 'Sí. Si necesitas algo para un grupo, celebración o empresa, se puede conversar y adaptar.',
   },
 ]
 
@@ -585,15 +585,15 @@ export default function CommercialSection({ setActiveTab, onCommercialReserve })
                 maxWidth: '100%',
               }}
             >
-              PSR para todos
+              PSR para ti
             </div>
 
             <h2 style={{ margin: 0, fontSize: 'clamp(30px, 5vw, 48px)', lineHeight: 1.03, maxWidth: 720 }}>
-              Simracing claro, entretenido y fácil de reservar desde el teléfono
+              Una experiencia distinta, entretenida y fácil de reservar
             </h2>
 
             <p style={{ margin: 0, color: 'rgba(255,255,255,0.82)', fontSize: 17, lineHeight: 1.6, maxWidth: 760 }}>
-              Ideal para quien quiere probar algo distinto, competir en serio o cotizar una experiencia potente para empresas, grupos y eventos.
+              Ideal para venir solo, en pareja, con amigos, en familia o para organizar una actividad distinta con tu empresa o grupo.
             </p>
 
             <div className="psr-commercial-main-actions" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.1fr) minmax(0, 0.9fr)', gap: 12 }}>
@@ -625,13 +625,13 @@ export default function CommercialSection({ setActiveTab, onCommercialReserve })
             }}
           >
             <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#93c5fd' }}>
-              Decisión rápida
+              Elige tu experiencia
             </div>
             <div style={{ fontSize: 24, fontWeight: 900, lineHeight: 1.1 }}>
-              Entiendes rápido qué hacer y cómo avanzar
+              Elige la experiencia que más te acomode
             </div>
             <div style={{ color: 'rgba(255,255,255,0.78)', lineHeight: 1.6 }}>
-              Menos texto técnico, más claridad comercial: qué es PSR, a quién le sirve y cuál es el siguiente paso para reservar o cotizar.
+              Todo está ordenado para que encuentres rápido si quieres venir por entretención, celebrar algo o cotizar para tu empresa.
             </div>
             <div className="psr-commercial-side-actions" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
               <ContactIconButton
@@ -652,7 +652,7 @@ export default function CommercialSection({ setActiveTab, onCommercialReserve })
       </section>
 
       <section className="psr-commercial-section-card" style={{ ...section, background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.03) 100%)' }}>
-        <SectionIntro eyebrow="Decisión rápida" title="¿Qué tipo de experiencia estás buscando?" text="En vez de obligar a leer demasiado, esta parte empuja a que cada persona encuentre rápido el camino correcto según su plan." />
+        <SectionIntro eyebrow="Elige tu experiencia" title="¿Qué experiencia estás buscando?" text="Elige la opción que más se parezca a tu plan y avanza por el camino correcto sin enredos." />
         <div className="psr-commercial-decision-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14 }}>
           {decisionCards.map((item) => (
             <DecisionCard key={item.title} item={item} onAction={handleDecisionAction} />
@@ -661,7 +661,7 @@ export default function CommercialSection({ setActiveTab, onCommercialReserve })
       </section>
 
       <section className="psr-commercial-section-card" style={{ ...section, background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.03) 100%)' }}>
-        <SectionIntro eyebrow="Valor rápido" title="Por qué la gente conecta rápido con PSR" text="Menos explicación técnica, más sensación de panorama potente, competitivo y fácil de entender desde el primer vistazo." />
+        <SectionIntro eyebrow="Por qué gusta tanto" title="Por qué tantas personas disfrutan PSR" text="Es fácil de entender, entretenido desde el primer minuto y dan ganas reales de volver." />
         <div className="psr-commercial-benefits" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
           {benefitCards.map((item) => (
             <div
@@ -685,7 +685,7 @@ export default function CommercialSection({ setActiveTab, onCommercialReserve })
       </section>
 
       <section className="psr-commercial-section-card" style={{ ...section, background: 'linear-gradient(180deg, rgba(8,18,48,0.64) 0%, rgba(255,255,255,0.03) 100%)' }}>
-        <SectionIntro eyebrow="Conversión" title="Elige tu camino" text="Cada bloque empuja una decisión concreta: reservar una sesión, cotizar para empresa o preparar un evento." />
+        <SectionIntro eyebrow="Tus opciones" title="Elige tu opción" text="Si vienes a correr por entretención, organizar un evento o cotizar para tu empresa, aquí encuentras la opción correcta." />
         <div className="psr-commercial-offers" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
           {offerCards.map((item) => (
             <div
@@ -739,7 +739,7 @@ export default function CommercialSection({ setActiveTab, onCommercialReserve })
       </section>
 
       <section className="psr-commercial-section-card" style={section}>
-        <SectionIntro eyebrow="Retención" title="No es una experiencia de una sola vez" text="Esta parte conecta mejor la venta inicial con el valor real de volver: competir, mejorar tiempos y seguir participando." />
+        <SectionIntro eyebrow="Para seguir volviendo" title="No es una experiencia para una sola vez" text="Muchos vienen una vez y después quieren volver para mejorar tiempos, probar otros autos o competir con más gente." />
         <div className="psr-commercial-retention-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
           {retentionSteps.map((item, index) => (
             <div
@@ -778,7 +778,7 @@ export default function CommercialSection({ setActiveTab, onCommercialReserve })
       </section>
 
       <section className="psr-commercial-section-card" style={section}>
-        <SectionIntro eyebrow="Paso a paso" title="Cómo funciona" text="La idea es eliminar dudas rápidas y mostrar que reservar o cotizar no tiene fricción innecesaria." />
+        <SectionIntro eyebrow="Así de simple" title="Cómo funciona" text="Reservar o cotizar es simple, rápido y pensado para hacerlo cómodo desde el teléfono." />
         <div className="psr-commercial-how" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
           {howItWorks.map((item) => (
             <div
@@ -817,7 +817,7 @@ export default function CommercialSection({ setActiveTab, onCommercialReserve })
       </section>
 
       <section className="psr-commercial-section-card" style={section}>
-        <SectionIntro eyebrow="Prueba social" title="Lo que dice la gente" text="Reseñas reales de Google. Mucho más creíbles que cualquier promesa vacía o texto comercial inventado." />
+        <SectionIntro eyebrow="Opiniones reales" title="Lo que dice la gente" text="Opiniones reales de personas que ya vinieron a vivir la experiencia." />
 
         <div className="psr-commercial-reviews" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
           {visibleReviews.map((review) => (
@@ -841,7 +841,7 @@ export default function CommercialSection({ setActiveTab, onCommercialReserve })
       </section>
 
       <section className="psr-commercial-section-card" style={section}>
-        <SectionIntro eyebrow="Objeciones" title="Preguntas rápidas" text="Respuestas cortas y directas para que la persona no se frene justo antes de reservar o pedir una cotización." />
+        <SectionIntro eyebrow="Preguntas frecuentes" title="Preguntas rápidas" text="Respuestas claras para que sepas rápido si esto es para ti, tu familia, tu grupo o tu empresa." />
         <div className="psr-commercial-faq" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
           {faqCards.map((item) => (
             <div
@@ -892,9 +892,9 @@ export default function CommercialSection({ setActiveTab, onCommercialReserve })
         >
           Reserva o cotiza hoy
         </div>
-        <h3 style={{ margin: '14px 0 10px', fontSize: 'clamp(28px, 4vw, 44px)' }}>La idea es que avances ahora, no después</h3>
+        <h3 style={{ margin: '14px 0 10px', fontSize: 'clamp(28px, 4vw, 44px)' }}>Haz tu reserva o cotiza aquí</h3>
         <p style={{ margin: '0 auto 18px', maxWidth: 760, color: 'rgba(255,255,255,0.82)', lineHeight: 1.6, fontSize: 17 }}>
-          Reserva una sesión, cotiza por WhatsApp o revisa Instagram para ver mejor la experiencia real. Todo quedó más directo para convertir mejor desde el teléfono.
+          Reserva tu sesión, cotiza por WhatsApp o mira Instagram para ver cómo se vive la experiencia en PSR.
         </p>
 
         <div className="psr-commercial-contact-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
