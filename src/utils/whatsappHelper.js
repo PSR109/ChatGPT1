@@ -1,23 +1,103 @@
 const PSR_PHONE = '+56984630196'
 
-export function buildWhatsAppLink(type) {
-  const text = buildWhatsAppCopyText(type)
+export const PSR_WHATSAPP_NUMBER = String(PSR_PHONE).replace(/\D/g, '')
+
+function buildMessage(lines = []) {
+  return lines
+    .map((line) => String(line ?? '').trim())
+    .filter(Boolean)
+    .join('\n')
+}
+
+export function buildWhatsAppLink(type, options = {}) {
+  const text = buildWhatsAppCopyText(type, options)
   return buildBookingWhatsappLink(text)
 }
 
-export function buildWhatsAppCopyText(type) {
+export function buildCommercialWhatsappLink(type, options = {}) {
+  return buildWhatsAppLink(type, options)
+}
+
+export function buildWhatsAppCopyText(type, options = {}) {
+  const { name = '', details = '' } = options
+
+  const safeName = String(name || '').trim()
+  const safeDetails = String(details || '').trim()
+  const opener = safeName
+    ? `Hola, soy ${safeName} y quiero información de Patagonia SimRacing.`
+    : 'Hola, quiero información de Patagonia SimRacing.'
+
   const copyMap = {
-    aprender:
-      'Hola, quiero cotizar una sesión en Patagonia SimRacing para aprender o practicar. ¿Qué horarios recomiendan y qué configuración me conviene?',
-    empresa:
-      'Hola, quiero cotizar una actividad de team building para empresa en Patagonia SimRacing. ¿Qué formato recomiendan y qué disponibilidad tienen?',
-    evento:
-      'Hola, quiero cotizar un evento o cumpleaños en Patagonia SimRacing. ¿Qué opciones tienen para grupos y qué horarios sugieren?',
-    activacion:
-      'Hola, quiero cotizar una activación de marca con Patagonia SimRacing. ¿Qué formatos y alcance manejan?',
+    aprender: buildMessage([
+      opener,
+      '',
+      'Quiero reservar una sesión para venir a correr, aprender o practicar.',
+      '¿Qué horario cercano me recomiendan y qué configuración me conviene para partir?',
+      safeDetails,
+    ]),
+    pareja: buildMessage([
+      opener,
+      '',
+      'Quiero cotizar una experiencia para pareja en Patagonia SimRacing.',
+      'Busco un panorama entretenido y fácil de disfrutar aunque no tengamos experiencia.',
+      '¿Qué opción recomiendan y qué horarios tienen?',
+      safeDetails,
+    ]),
+    familia: buildMessage([
+      opener,
+      '',
+      'Quiero cotizar una experiencia familiar en Patagonia SimRacing.',
+      'La idea es ir en un formato fácil de disfrutar para distintos niveles.',
+      '¿Qué opción recomiendan y qué horarios tienen disponibles?',
+      safeDetails,
+    ]),
+    grupo: buildMessage([
+      opener,
+      '',
+      'Quiero cotizar una experiencia para grupo en Patagonia SimRacing.',
+      'Busco algo entretenido, competitivo y simple de organizar.',
+      '¿Qué formato recomiendan para grupos y qué horarios tienen?',
+      safeDetails,
+    ]),
+    empresa: buildMessage([
+      opener,
+      '',
+      'Quiero cotizar una actividad para empresa o team building en Patagonia SimRacing.',
+      'Busco una opción distinta, competitiva y fácil de coordinar para el equipo.',
+      '¿Qué formato recomiendan, para cuántas personas funciona mejor y qué disponibilidad tienen?',
+      safeDetails,
+    ]),
+    evento: buildMessage([
+      opener,
+      '',
+      'Quiero cotizar un evento o cumpleaños en Patagonia SimRacing.',
+      'Busco una experiencia especial para grupo y quiero ver formatos, duración y horarios recomendados.',
+      safeDetails,
+    ]),
+    activacion: buildMessage([
+      opener,
+      '',
+      'Quiero cotizar una activación de marca con Patagonia SimRacing.',
+      'Busco una propuesta comercial distinta y quiero revisar formatos posibles.',
+      safeDetails,
+    ]),
+    general: buildMessage([
+      opener,
+      '',
+      'Quiero reservar o cotizar una experiencia en Patagonia SimRacing.',
+      '¿Qué horarios y opciones recomiendan hoy?',
+      safeDetails,
+    ]),
+    cotizacion_general: buildMessage([
+      opener,
+      '',
+      'Quiero cotizar una experiencia en Patagonia SimRacing.',
+      '¿Qué formatos, horarios y valores recomiendan según el tipo de visita?',
+      safeDetails,
+    ]),
   }
 
-  return copyMap[type] || copyMap.aprender
+  return copyMap[type] || copyMap.general
 }
 
 export function buildCommercialBookingPrefill(type) {
@@ -85,9 +165,47 @@ export function buildBookingWhatsappMessage({
   return rows.join('\n')
 }
 
+export function buildBookingFollowupWhatsappMessage({
+  client,
+  phone,
+  date,
+  time,
+  kind,
+  configLabel,
+  duration,
+  total,
+}) {
+  const kindLabelMap = {
+    LOCAL: 'Reserva',
+    EMPRESA: 'Actividad empresa',
+    EVENTO: 'Evento',
+  }
+
+  return [
+    'Hola, acabo de enviar una solicitud desde la app de Patagonia SimRacing.',
+    '',
+    'Les comparto el resumen para confirmar más rápido:',
+    '',
+    `Tipo: ${kindLabelMap[kind] || kind || '-'}`,
+    `Nombre: ${client || '-'}`,
+    `Teléfono: ${phone || '-'}`,
+    `Fecha: ${date || '-'}`,
+    `Hora: ${time || '-'}`,
+    `Configuración: ${configLabel || '-'}`,
+    `Duración: ${duration || '-'} min`,
+    `Total estimado: $${Number(total || 0).toLocaleString('es-CL')}`,
+    '',
+    '¿Sigue disponible este horario?',
+    'Si no, ¿qué alternativa cercana me recomiendan?',
+  ].join('\n')
+}
+
 export function buildBookingWhatsappLink(text) {
-  const cleanPhone = String(PSR_PHONE).replace(/\D/g, '')
-  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text || '')}`
+  return `https://wa.me/${PSR_WHATSAPP_NUMBER}?text=${encodeURIComponent(text || '')}`
+}
+
+export function buildBookingFollowupWhatsappLink(bookingSummary) {
+  return buildBookingWhatsappLink(buildBookingFollowupWhatsappMessage(bookingSummary || {}))
 }
 
 export function buildDirectWhatsappLink(phone, text) {

@@ -4,6 +4,7 @@ export default function ActionButtonsRow({
   buttonRowSmall,
   miniButton,
   miniDanger,
+  disabled = false,
 }) {
   return (
     <div
@@ -15,9 +16,12 @@ export default function ActionButtonsRow({
     >
       <button
         onClick={onEdit}
+        disabled={disabled}
         style={{
           ...miniButton,
           minWidth: 92,
+          opacity: disabled ? 0.6 : 1,
+          cursor: disabled ? 'not-allowed' : 'pointer',
         }}
       >
         Editar
@@ -25,9 +29,12 @@ export default function ActionButtonsRow({
 
       <button
         onClick={onDelete}
+        disabled={disabled}
         style={{
           ...miniDanger,
           minWidth: 92,
+          opacity: disabled ? 0.6 : 1,
+          cursor: disabled ? 'not-allowed' : 'pointer',
         }}
       >
         Eliminar

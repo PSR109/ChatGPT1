@@ -49,10 +49,6 @@ function getDateFromTimeZoneParts(parts, timeZone = CHILE_TIME_ZONE) {
   return new Date(guessUtc + (desiredAsUtc - zonedAsUtc))
 }
 
-function getCurrentChileDate() {
-  return getDateFromTimeZoneParts(getTimeZoneParts(new Date(), CHILE_TIME_ZONE), CHILE_TIME_ZONE)
-}
-
 function getWeeklyPeriodEndDate() {
   const nowParts = getTimeZoneParts(new Date(), CHILE_TIME_ZONE)
   const currentLocalDate = new Date(nowParts.year, nowParts.month - 1, nowParts.day)
@@ -89,13 +85,23 @@ function getMonthlyPeriodEndDate() {
   )
 }
 
-function resolveTargetEndDate(endAt, type) {
-  if (type === 'weekly') return getWeeklyPeriodEndDate()
-  if (type === 'monthly') return getMonthlyPeriodEndDate()
+function parseExplicitEndAt(endAt) {
   if (!endAt) return null
-
   const parsed = new Date(endAt)
   return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+function resolveTargetEndDate(endAt, type) {
+  const explicitEndAt = parseExplicitEndAt(endAt)
+
+  // Prioridad real: si existe end_at válido, manda esa fecha
+  if (explicitEndAt) return explicitEndAt
+
+  // Fallback legacy solo si no existe end_at válido
+  if (type === 'weekly') return getWeeklyPeriodEndDate()
+  if (type === 'monthly') return getMonthlyPeriodEndDate()
+
+  return null
 }
 
 export function getRemainingMs(endAt, type) {
@@ -166,4 +172,61 @@ export function getPositionBadge(position) {
   if (position === 2) return '🥈'
   if (position === 3) return '🥉'
   return `#${position}`
+}
+
+export function parseChallengeDate(endAt) {
+  if (!endAt) return null
+  const parsed = new Date(endAt)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+export function hasExplicitChallengeEndAt(challenge = {}) {
+  return Boolean(parseChallengeDate(challenge?.end_at))
+}
+
+export function normalizeChallengeRecord(challenge = {}, type) {
+  if (!challenge || typeof challenge !== 'object') return null
+
+  return {
+    ...challenge,
+    game: String(challenge.game ?? '').trim() || '-',
+    track: String(challenge.track ?? '').trim() || '-',
+    car: String(challenge.car ?? '').trim() || '-',
+    end_at: parseChallengeDate(challenge.end_at)?.toISOString() || null,
+    type,
+  }
+}
+
+function getChallengeSortTimestamp(challenge = {}) {
+  const explicit = parseChallengeDate(challenge?.end_at)
+  if (explicit) return explicit.getTime()
+
+  const createdAt = parseChallengeDate(challenge?.created_at)
+  if (createdAt) return createdAt.getTime()
+
+  const updatedAt = parseChallengeDate(challenge?.updated_at)
+  if (updatedAt) return updatedAt.getTime()
+
+  const numericId = Number(challenge?.id)
+  return Number.isFinite(numericId) ? numericId : 0
+}
+
+export function pickActiveChallenge(challenges = [], type) {
+  const safeChallenges = Array.isArray(challenges)
+    ? challenges.filter((challenge) => challenge && typeof challenge === 'object')
+    : []
+
+  const explicitCandidates = safeChallenges
+    .filter((challenge) => hasExplicitChallengeEndAt(challenge) && !isChallengeExpired(challenge.end_at, type))
+    .sort((a, b) => getRemainingMs(a.end_at, type) - getRemainingMs(b.end_at, type))
+
+  if (explicitCandidates.length > 0) {
+    return normalizeChallengeRecord(explicitCandidates[0], type)
+  }
+
+  const legacyCandidates = safeChallenges
+    .filter((challenge) => !hasExplicitChallengeEndAt(challenge) && !isChallengeExpired(challenge.end_at, type))
+    .sort((a, b) => getChallengeSortTimestamp(b) - getChallengeSortTimestamp(a))
+
+  return normalizeChallengeRecord(legacyCandidates[0], type)
 }

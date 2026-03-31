@@ -4,6 +4,7 @@ export default function PrimarySecondaryActions({
   secondaryLabel,
   onSecondary,
   showSecondary,
+  disabled = false,
   buttonRow,
   button,
   buttonSecondary,
@@ -19,9 +20,12 @@ export default function PrimarySecondaryActions({
     >
       <button
         onClick={onPrimary}
+        disabled={disabled}
         style={{
           ...button,
           minWidth: 170,
+          opacity: disabled ? 0.65 : 1,
+          cursor: disabled ? 'not-allowed' : 'pointer',
         }}
       >
         {primaryLabel}
@@ -30,9 +34,12 @@ export default function PrimarySecondaryActions({
       {showSecondary ? (
         <button
           onClick={onSecondary}
+          disabled={disabled}
           style={{
             ...buttonSecondary,
             minWidth: 170,
+            opacity: disabled ? 0.65 : 1,
+            cursor: disabled ? 'not-allowed' : 'pointer',
           }}
         >
           {secondaryLabel}

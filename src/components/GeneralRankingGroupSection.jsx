@@ -1,3 +1,13 @@
+/*
+ * NO USAR COMO CAPA PRINCIPAL.
+ * Este archivo queda solo como referencia heredada mientras no se haga
+ * una limpieza controlada del ranking completo.
+ */
+/*
+ * PSR RANKING MAP
+ * HEREDADO / NO ACTIVO: este archivo solo depende de otras capas heredadas
+ * y no está conectado al flujo principal actual. No tocar a ciegas.
+ */
 import GeneralRankingTableSection from './GeneralRankingTableSection'
 import SectionContentSpacing from './SectionContentSpacing'
 

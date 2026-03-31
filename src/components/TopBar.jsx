@@ -1,3 +1,8 @@
+/**
+ * LEGACY / NO ACTIVO EN EL FLUJO PRINCIPAL
+ * La navegación actual usa LayoutHeader + MainTabsNav + control central en App.jsx.
+ * Este componente no gobierna la navegación activa de la app actual.
+ */
 import React from 'react'
 import {
   hero,
@@ -31,14 +36,14 @@ function TopBar({ appMode, setAppMode, viewMode, setViewMode }) {
           onClick={() => setAppMode('USER')}
           style={appMode === 'USER' ? modeButtonActive : modeButton}
         >
-          Modo Usuario
+          Clientes
         </button>
 
         <button
           onClick={() => setAppMode('ADMIN')}
           style={appMode === 'ADMIN' ? modeButtonActive : modeButton}
         >
-          Modo Admin
+          Gestión
         </button>
       </div>
 

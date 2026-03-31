@@ -1,3 +1,18 @@
+
+
+function normalizeTextValue(value, fallback = '-') {
+  const normalized = String(value ?? '').trim()
+  return normalized || fallback
+}
+
+function getNumericTimeMs(entry = {}) {
+  const numeric = Number(entry?.time_ms)
+  return Number.isFinite(numeric) ? numeric : Number.POSITIVE_INFINITY
+}
+
+export const getPilotName = (entry = {}) => {
+  return normalizeTextValue(entry?.player || entry?.pilot || entry?.pilot_name, 'Sin nombre')
+}
 export function getRankingBadge(position) {
   if (position === 1) return '🥇'
   if (position === 2) return '🥈'
@@ -76,39 +91,67 @@ export function getSectionRecord(entries = []) {
 }
 
 export function buildRankingSectionMeta(entries = []) {
-  const record = getSectionRecord(entries)
+  const safeEntries = Array.isArray(entries) ? entries : []
+  const record = getSectionRecord(
+    [...safeEntries].sort((a, b) => getNumericTimeMs(a) - getNumericTimeMs(b))
+  )
 
   return {
-    participants: entries.length,
-    recordTime: record?.time || '-',
-    recordHolder: record?.player || '-',
-    recordCar: record?.car || '-',
+    participants: getUniqueParticipantsCount(safeEntries),
+    recordTime: normalizeTextValue(record?.time),
+    recordHolder: getPilotName(record),
+    recordCar: normalizeTextValue(record?.car),
   }
 }
 
 export function buildGlobalRankingMeta(groupedRanking = []) {
-  let sections = groupedRanking.length
-  let totalParticipants = 0
+  const safeSections = Array.isArray(groupedRanking) ? groupedRanking : []
+  const sections = safeSections.length
+  let totalEntries = 0
   let bestRecord = null
+  const uniquePilots = new Set()
 
-  groupedRanking.forEach((section) => {
-    totalParticipants += section.entries?.length || 0
-    const record = getSectionRecord(section.entries || [])
+  safeSections.forEach((section) => {
+    const entries = Array.isArray(section?.entries) ? section.entries : []
+    totalEntries += entries.length
 
-    if (record && (!bestRecord || Number(record.time_ms) < Number(bestRecord.time_ms))) {
+    entries.forEach((entry) => {
+      const normalizedPlayer = getPilotName(entry).trim().toUpperCase()
+      if (normalizedPlayer && normalizedPlayer !== 'SIN NOMBRE') uniquePilots.add(normalizedPlayer)
+    })
+
+    const record = getSectionRecord(
+      [...entries].sort((a, b) => getNumericTimeMs(a) - getNumericTimeMs(b))
+    )
+
+    if (record && (!bestRecord || getNumericTimeMs(record) < getNumericTimeMs(bestRecord))) {
       bestRecord = {
         ...record,
-        game: section.game,
-        track: section.track,
+        game: normalizeTextValue(section?.game),
+        track: normalizeTextValue(section?.track),
       }
     }
   })
 
   return {
     sections,
-    totalParticipants,
-    bestRecordTime: bestRecord?.time || '-',
-    bestRecordHolder: bestRecord?.player || '-',
+    totalEntries,
+    totalParticipants: uniquePilots.size,
+    uniquePilots: uniquePilots.size,
+    bestRecordTime: normalizeTextValue(bestRecord?.time),
+    bestRecordHolder: getPilotName(bestRecord),
     bestRecordLocation: bestRecord ? `${bestRecord.game} · ${bestRecord.track}` : '-',
   }
+}
+
+export const getUniqueParticipantsCount = (entries = []) => {
+  const safeEntries = Array.isArray(entries) ? entries : []
+  const unique = new Set(
+    safeEntries
+      .map((entry) => getPilotName(entry))
+      .filter((name) => name && name !== 'Sin nombre')
+      .map((name) => name.trim().toUpperCase())
+  )
+
+  return unique.size
 }

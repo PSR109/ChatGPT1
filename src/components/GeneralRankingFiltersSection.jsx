@@ -1,3 +1,13 @@
+/*
+ * NO USAR COMO CAPA PRINCIPAL.
+ * Este archivo queda solo como referencia heredada mientras no se haga
+ * una limpieza controlada del ranking completo.
+ */
+/*
+ * PSR RANKING MAP
+ * HEREDADO / NO ACTIVO: este archivo no está conectado al flujo principal
+ * del ranking actual. No tocar a ciegas.
+ */
 import AdminTextInput from './AdminTextInput'
 import AdminSelect from './AdminSelect'
 

@@ -1,3 +1,13 @@
+/*
+ * NO USAR COMO CAPA PRINCIPAL.
+ * Este archivo queda solo como referencia heredada mientras no se haga
+ * una limpieza controlada del ranking completo.
+ */
+/*
+ * PSR RANKING MAP
+ * HEREDADO / NO ACTIVO: este archivo forma parte de una capa antigua
+ * del ranking y no está conectado al flujo principal actual. No tocar a ciegas.
+ */
 import { buildCenteredTableStyles } from '../utils/tableStyles'
 import ActionButtonsRow from './ActionButtonsRow'
 

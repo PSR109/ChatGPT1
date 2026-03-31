@@ -196,7 +196,7 @@ function ChallengeCreateForm({
         Crear desafío {type === 'weekly' ? 'semanal' : 'mensual'}
       </div>
       <div style={{ textAlign: 'center', opacity: 0.76, fontSize: 13 }}>
-        Define juego, pista, auto y cierre del reto desde el mismo panel.
+        Define juego, pista, auto y cierre del reto en un solo lugar.
       </div>
       <input value={createGameValue} onChange={(e) => setCreateGameValue(normalizeTextInput(e.target.value))} placeholder='JUEGO' style={input} />
       <input value={createTrackValue} onChange={(e) => setCreateTrackValue(normalizeTextInput(e.target.value))} placeholder='CIRCUITO / ETAPA' style={input} />
@@ -247,7 +247,7 @@ function ChallengeEntryForm({
         {editingEntryId ? 'Editar tiempo' : 'Registrar tiempo'}
       </div>
       <div style={{ textAlign: 'center', opacity: 0.76, fontSize: 13 }}>
-        Panel rápido para ajustar registros sin salir del desafío activo.
+        Ajusta registros del reto sin salir de esta vista.
       </div>
       <input value={playerValue} onChange={(e) => setPlayerValue(normalizeTextInput(e.target.value))} placeholder='PILOTO' style={input} disabled={expired} />
       <input value={timeValue} onChange={(e) => setTimeValue(e.target.value)} placeholder='TIEMPO EJ: 1:28.500' style={input} disabled={expired} />
@@ -325,7 +325,7 @@ function ChallengeTable({
             <th style={thCenter}>Piloto</th>
             <th style={thCenter}>Tiempo</th>
             <th style={thCenter}>Gap</th>
-            {isAdmin ? <th style={thCenter}>Admin</th> : onReserveFromChallenge ? <th style={thCenter}>Acción</th> : null}
+            {isAdmin ? <th style={thCenter}>Gestión</th> : onReserveFromChallenge ? <th style={thCenter}>Acción</th> : null}
           </tr>
         </thead>
         <tbody>
@@ -497,7 +497,23 @@ export default function ChallengeSection({
             button={button}
           />
         ) : (
-          <CenteredMessage text='Aún no hay un desafío activo' />
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '18px 14px',
+              borderRadius: 14,
+              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'rgba(255,255,255,0.03)',
+              marginBottom: 18,
+            }}
+          >
+            <div style={{ fontSize: 15, fontWeight: 800, opacity: 0.92, marginBottom: 8 }}>
+              No hay un desafío activo en este momento
+            </div>
+            <div style={{ fontSize: 13, opacity: 0.78, lineHeight: 1.45, maxWidth: 540, margin: '0 auto' }}>
+              Cuando se abra el próximo reto aparecerá aquí con su combo y su cuenta regresiva.
+            </div>
+          </div>
         )
       ) : (
         <>
@@ -529,9 +545,9 @@ export default function ChallengeSection({
                 marginBottom: 16,
               }}
             >
-              <div style={{ textAlign: 'center', fontWeight: 900, marginBottom: 6 }}>Panel rápido admin</div>
+              <div style={{ textAlign: 'center', fontWeight: 900, marginBottom: 6 }}>Ajustes rápidos del desafío</div>
               <div style={{ textAlign: 'center', opacity: 0.74, fontSize: 13, marginBottom: 12 }}>
-                Ajusta tiempos, corrige registros y elimina el reto completo desde aquí.
+                Ajusta tiempos, corrige registros y ordena el marcador sin salir del retoina el reto completo desde aquí.
               </div>
               <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 10 }}>
                 <button onClick={onDeleteChallenge} style={miniDanger}>Eliminar desafío y limpiar tiempos</button>
@@ -558,7 +574,23 @@ export default function ChallengeSection({
           {messageValue ? <div style={{ ...messageStyle, textAlign: 'center', marginBottom: 14 }}>{messageValue}</div> : null}
 
           {!leaderboard.length ? (
-            <CenteredMessage text='Aún no hay tiempos cargados' />
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '18px 14px',
+                borderRadius: 14,
+                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'rgba(255,255,255,0.03)',
+                marginBottom: 18,
+              }}
+            >
+              <div style={{ fontSize: 15, fontWeight: 800, opacity: 0.92, marginBottom: 8 }}>
+                Aún no hay tiempos cargados
+              </div>
+              <div style={{ fontSize: 13, opacity: 0.78, lineHeight: 1.45, maxWidth: 540, margin: '0 auto' }}>
+                Sé el primero en marcar un tiempo y abrir este marcador.
+              </div>
+            </div>
           ) : isMobile ? (
             <div style={{ display: 'grid', gap: 10 }}>
               {leaderboard.map((entry) => (

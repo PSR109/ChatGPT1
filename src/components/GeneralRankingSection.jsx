@@ -1,3 +1,14 @@
+/**
+ * ACTIVE RANKING LAYER
+ * Esta es la capa principal usada por App.jsx para el ranking general.
+ * Mantener cambios aquí antes de tocar capas heredadas.
+ */
+/*
+ * PSR RANKING MAP
+ * ACTIVO: este es el componente real conectado en src/App.jsx.
+ * Cualquier mejora funcional o visual del ranking general debe partir aquí,
+ * salvo que primero se decida una refactorización controlada.
+ */
 import { useEffect, useMemo, useState } from 'react'
 import SectionCard from './SectionCard'
 import CenteredMessage from './CenteredMessage'
@@ -9,70 +20,67 @@ import {
   getRankingRowAccent,
 } from '../utils/rankingUtils'
 
+function useIsMobile(breakpoint = 640) {
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.innerWidth <= breakpoint
+  })
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+
+    const onResize = () => setIsMobile(window.innerWidth <= breakpoint)
+    onResize()
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [breakpoint])
+
+  return isMobile
+}
+
+function fitText(value, fallback = '-') {
+  return value || fallback
+}
+
 function StatBox({ label, value, strong = false, compact = false }) {
   return (
     <div
+      title={fitText(value)}
       style={{
+        minWidth: 0,
         border: strong ? '1px solid rgba(250,204,21,0.28)' : '1px solid rgba(255,255,255,0.08)',
         borderRadius: compact ? 12 : 14,
-        padding: compact ? '10px 12px' : 14,
+        padding: compact ? '10px 8px' : 14,
         textAlign: 'center',
         background: strong ? 'rgba(250,204,21,0.08)' : 'rgba(255,255,255,0.03)',
-        minWidth: 0,
-        boxSizing: 'border-box',
+        overflow: 'hidden',
       }}
     >
-      <div style={{ fontSize: compact ? 11 : 12, opacity: 0.72, marginBottom: compact ? 4 : 6 }}>{label}</div>
-      <div style={{ fontSize: compact ? 15 : 18, fontWeight: 800, wordBreak: 'break-word', lineHeight: 1.2 }}>{value || '-'}</div>
+      <div
+        style={{
+          fontSize: compact ? 10 : 12,
+          opacity: 0.72,
+          marginBottom: compact ? 4 : 6,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          fontSize: compact ? 'clamp(0.88rem, 2.9vw, 1rem)' : 'clamp(0.98rem, 2.8vw, 1.12rem)',
+          fontWeight: 800,
+          lineHeight: 1.15,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}
+      >
+        {fitText(value)}
+      </div>
     </div>
-  )
-}
-
-function DataChip({ label, value, strong = false }) {
-  return (
-    <div
-      style={{
-        border: strong ? '1px solid rgba(250,204,21,0.24)' : '1px solid rgba(255,255,255,0.08)',
-        background: strong ? 'rgba(250,204,21,0.08)' : 'rgba(255,255,255,0.03)',
-        borderRadius: 999,
-        padding: '8px 10px',
-        minWidth: 0,
-      }}
-    >
-      <div style={{ fontSize: 10, opacity: 0.68, marginBottom: 2, textTransform: 'uppercase', letterSpacing: 0.4 }}>{label}</div>
-      <div style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value || '-'}</div>
-    </div>
-  )
-}
-
-
-function getReserveActionLabel(position) {
-  if (Number(position) === 1) return 'DEFENDER PUESTO'
-  if (Number(position) <= 3) return 'IR POR EL P1'
-  return 'MEJORAR TIEMPO'
-}
-
-function ReserveActionButton({ label, onClick }) {
-  return (
-    <button
-      type='button'
-      onClick={onClick}
-      style={{
-        width: '100%',
-        marginTop: 10,
-        border: '1px solid rgba(41,129,243,0.34)',
-        borderRadius: 12,
-        padding: '11px 12px',
-        background: 'linear-gradient(180deg, rgba(41,129,243,0.22), rgba(14,44,64,0.88))',
-        color: '#ffffff',
-        fontWeight: 900,
-        fontSize: 12,
-        letterSpacing: 0.3,
-        cursor: 'pointer',
-      }}
-    >
-      {label}
-    </button>
   )
 }
 
@@ -94,7 +102,7 @@ function FilterCard({
         display: 'grid',
         gap: 10,
         gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(220px, 1fr))',
-        marginBottom: 18,
+        marginBottom: 12,
       }}
     >
       <select value={selectedGame} onChange={(e) => setSelectedGame(e.target.value)} style={input}>
@@ -112,53 +120,64 @@ function FilterCard({
       <input
         value={selectedPilot}
         onChange={(e) => setSelectedPilot(e.target.value)}
-        placeholder="BUSCAR PILOTO"
+        placeholder="Buscar piloto"
         style={input}
       />
     </div>
   )
 }
 
-function PodiumPreview({ entries }) {
-  const preview = entries.slice(0, 3)
-  if (!preview.length) return null
+function FilterSummary({ selectedGame, selectedTrack, selectedPilot, isMobile }) {
+  const chips = [
+    selectedGame && selectedGame !== 'TODOS' ? `Juego: ${selectedGame}` : 'Juego: Todos',
+    selectedTrack && selectedTrack !== 'TODOS' ? `Pista: ${selectedTrack}` : 'Pista: Todas',
+    selectedPilot ? `Piloto: ${selectedPilot}` : 'Piloto: Todos',
+  ]
 
   return (
-    <div style={{ display: 'grid', gap: 8 }}>
-      {preview.map((row) => (
-        <div
-          key={row.id}
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'auto 1fr auto',
-            gap: 8,
-            alignItems: 'center',
-            minWidth: 0,
-            padding: '8px 10px',
-            borderRadius: 12,
-            background: row.position === 1 ? 'rgba(250,204,21,0.10)' : 'rgba(255,255,255,0.03)',
-            border: row.position === 1 ? '1px solid rgba(250,204,21,0.18)' : '1px solid rgba(255,255,255,0.06)',
-          }}
-        >
-          <div style={{ fontSize: 18, lineHeight: 1 }}>{getRankingBadge(row.position)}</div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.player}</div>
-            <div style={{ fontSize: 11, opacity: 0.7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.car || 'Auto no indicado'}</div>
+    <div
+      style={{
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 14,
+        padding: isMobile ? 12 : 14,
+        background: 'rgba(255,255,255,0.03)',
+        marginBottom: 18,
+      }}
+    >
+      <div style={{ fontSize: 12, opacity: 0.72, marginBottom: 8 }}>Filtro activo</div>
+      <div
+        style={{
+          display: 'grid',
+          gap: 8,
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))',
+        }}
+      >
+        {chips.map((chip) => (
+          <div
+            key={chip}
+            title={chip}
+            style={{
+              minWidth: 0,
+              borderRadius: 10,
+              border: '1px solid rgba(59,130,246,0.25)',
+              background: 'rgba(59,130,246,0.10)',
+              padding: '8px 10px',
+              fontSize: 'clamp(0.74rem, 2.8vw, 0.84rem)',
+              fontWeight: 700,
+              lineHeight: 1.2,
+              overflowWrap: 'anywhere',
+            }}
+          >
+            {chip}
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 13, fontWeight: 900, whiteSpace: 'nowrap' }}>{row.time}</div>
-            <div style={{ fontSize: 10, opacity: 0.7 }}>{row.gap}</div>
-          </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   )
 }
 
 function CompactSectionCard({ section, isOpen, onToggle, isMobile }) {
-  if (!section) return null
-  const entries = Array.isArray(section.entries) ? section.entries : []
-  const meta = buildRankingSectionMeta(entries)
+  const meta = buildRankingSectionMeta(section.entries || [])
 
   return (
     <button
@@ -167,44 +186,45 @@ function CompactSectionCard({ section, isOpen, onToggle, isMobile }) {
       style={{
         width: '100%',
         border: isOpen ? '1px solid rgba(59,130,246,0.4)' : '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 18,
-        padding: isMobile ? 14 : 16,
-        background: isOpen ? 'rgba(59,130,246,0.10)' : 'rgba(255,255,255,0.03)',
+        borderRadius: 16,
+        padding: isMobile ? 12 : 14,
+        background: isOpen
+          ? 'linear-gradient(180deg, rgba(59,130,246,0.12), rgba(255,255,255,0.04))'
+          : 'rgba(255,255,255,0.03)',
         color: '#fff',
         cursor: 'pointer',
-        textAlign: 'left',
-        boxShadow: isOpen ? '0 12px 26px rgba(37,99,235,0.16)' : 'none',
+        textAlign: 'center',
+        overflow: 'hidden',
+        boxShadow: isOpen ? '0 12px 26px rgba(2,8,23,0.22)' : 'none',
       }}
     >
-      <div style={{ display: 'grid', gap: 12 }}>
-        <div style={{ display: 'grid', gap: 8 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '6px 10px',
-                borderRadius: 999,
-                border: '1px solid rgba(255,255,255,0.08)',
-                background: 'rgba(255,255,255,0.04)',
-                fontSize: 11,
-                fontWeight: 800,
-                letterSpacing: 0.3,
-                textTransform: 'uppercase',
-              }}
-            >
-              {entries.length} tiempos cargados
-            </div>
-
-            <div style={{ fontSize: 12, fontWeight: 800, opacity: 0.88 }}>
-              {isOpen ? 'Ocultar detalle' : 'Ver detalle'}
-            </div>
+      <div style={{ display: 'grid', gap: 10 }}>
+        <div style={{ minWidth: 0 }}>
+          <div
+            title={section.game}
+            style={{
+              fontSize: isMobile ? 'clamp(1rem, 4.8vw, 1.3rem)' : 18,
+              fontWeight: 900,
+              lineHeight: 1.08,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {section.game}
           </div>
-
-          <div style={{ display: 'grid', gap: 4 }}>
-            <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, textAlign: 'center' }}>{section.game}</div>
-            <div style={{ opacity: 0.82, textAlign: 'center', fontSize: isMobile ? 13 : 15 }}>{section.track}</div>
+          <div
+            title={section.track}
+            style={{
+              opacity: 0.82,
+              marginTop: 4,
+              fontSize: isMobile ? 'clamp(0.78rem, 3.1vw, 0.92rem)' : 15,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {section.track}
           </div>
         </div>
 
@@ -212,8 +232,7 @@ function CompactSectionCard({ section, isOpen, onToggle, isMobile }) {
           style={{
             display: 'grid',
             gap: 8,
-            gridTemplateColumns: isMobile ? 'repeat(3, minmax(0, 1fr))' : 'repeat(3, minmax(90px, 1fr))',
-            width: '100%',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
           }}
         >
           <StatBox label="Récord" value={meta.recordTime} strong compact={isMobile} />
@@ -221,87 +240,148 @@ function CompactSectionCard({ section, isOpen, onToggle, isMobile }) {
           <StatBox label="Líder" value={meta.recordHolder} compact={isMobile} />
         </div>
 
-        {isMobile ? <PodiumPreview entries={entries} /> : null}
+        <div
+          style={{
+            fontSize: 11,
+            opacity: 0.72,
+            letterSpacing: 0.3,
+          }}
+        >
+          {isOpen ? 'Toca para cerrar detalle' : 'Toca para ver detalle'}
+        </div>
       </div>
     </button>
   )
 }
 
-function MobileEntryCard({
-  row,
-  isAdmin,
-  startEditLapTime,
-  deleteLapTime,
-  buttonRowSmall,
-  miniButton,
-  miniDanger,
-  reserveActionLabel,
-  onReserve,
-}) {
-  const cardBackground = row.position === 1
-    ? 'rgba(250,204,21,0.10)'
-    : row.position === 2
-      ? 'rgba(148,163,184,0.10)'
-      : row.position === 3
-        ? 'rgba(251,146,60,0.10)'
-        : 'rgba(255,255,255,0.03)'
-
+function MobileEntryCard({ row, isAdmin, startEditLapTime, deleteLapTime, miniButton, miniDanger }) {
   return (
     <div
       style={{
-        border: row.position <= 3 ? '1px solid rgba(255,255,255,0.14)' : '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 18,
+        ...getRankingRowAccent(row.position),
+        borderRadius: 16,
         padding: 12,
-        background: cardBackground,
-        minWidth: 0,
+        display: 'grid',
+        gap: 10,
         overflow: 'hidden',
+        boxShadow: '0 10px 24px rgba(2,8,23,0.18)',
       }}
     >
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'auto 1fr auto',
+          gridTemplateColumns: '38px minmax(0, 1fr)',
           gap: 10,
           alignItems: 'center',
-          marginBottom: 10,
-          minWidth: 0,
         }}
       >
-        <div style={{ fontSize: 22, lineHeight: 1 }}>{getRankingBadge(row.position)}</div>
-
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: 15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.player}</div>
-          <div style={{ fontSize: 11, opacity: 0.7 }}>Posición #{row.position}</div>
+        <div
+          style={{
+            width: 38,
+            height: 38,
+            display: 'grid',
+            placeItems: 'center',
+            borderRadius: 11,
+            background: 'rgba(255,255,255,0.08)',
+            fontSize: 18,
+          }}
+        >
+          {getRankingBadge(row.position)}
         </div>
 
-        <div style={{ textAlign: 'right', minWidth: 0 }}>
-          <div style={{ fontSize: 11, opacity: 0.68, marginBottom: 2 }}>Tiempo</div>
-          <div style={{ fontSize: 16, fontWeight: 900, whiteSpace: 'nowrap' }}>{row.time}</div>
+        <div style={{ minWidth: 0 }}>
+          <div
+            title={row.player}
+            style={{
+              fontWeight: 900,
+              fontSize: 'clamp(0.98rem, 3.8vw, 1.08rem)',
+              lineHeight: 1.08,
+              overflowWrap: 'anywhere',
+            }}
+          >
+            {row.player}
+          </div>
+          <div
+            title={`${row.country || '-'} · ${row.car || '-'}`}
+            style={{
+              marginTop: 5,
+              opacity: 0.76,
+              fontSize: 'clamp(0.72rem, 2.9vw, 0.82rem)',
+              lineHeight: 1.2,
+              overflowWrap: 'anywhere',
+            }}
+          >
+            {(row.country || '-') + ' · ' + (row.car || '-')}
+          </div>
         </div>
       </div>
 
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-          gap: 8,
+          borderRadius: 12,
+          padding: '10px 12px',
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.06)',
         }}
       >
-        <DataChip label="Gap" value={row.gap} strong={row.position === 1} />
-        <DataChip label="País" value={row.country || '-'} />
-        <div style={{ gridColumn: '1 / -1', minWidth: 0 }}>
-          <DataChip label="Auto" value={row.car || '-'} />
+        <div style={{ fontSize: 11, opacity: 0.7, marginBottom: 4 }}>Tiempo oficial</div>
+        <div
+          title={row.time}
+          style={{
+            fontWeight: 900,
+            fontSize: 'clamp(1.08rem, 4.4vw, 1.24rem)',
+            lineHeight: 1.02,
+            overflowWrap: 'anywhere',
+          }}
+        >
+          {row.time}
         </div>
       </div>
 
-      {!isAdmin && onReserve ? <ReserveActionButton label={reserveActionLabel} onClick={onReserve} /> : null}
+      <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+        <StatBox label="Posición" value={`#${row.position || '-'}`} compact />
+        <StatBox label="Diferencia" value={row.gap} compact />
+        <StatBox label="Auto" value={row.car || '-'} compact />
+      </div>
 
       {isAdmin ? (
-        <div style={{ ...buttonRowSmall, justifyContent: 'center', marginTop: 10 }}>
-          <button style={miniButton} onClick={() => startEditLapTime(row)}>Editar</button>
-          <button style={miniDanger} onClick={() => deleteLapTime(row.id)}>Eliminar</button>
+        <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+          <button style={{ ...miniButton, width: '100%' }} onClick={() => startEditLapTime(row)}>Editar</button>
+          <button style={{ ...miniDanger, width: '100%' }} onClick={() => deleteLapTime(row.id)}>Eliminar</button>
         </div>
-      ) : null}
+      ) : (
+        <div
+          style={{
+            fontSize: 11,
+            opacity: 0.72,
+          }}
+        >
+          ¿Crees que puedes bajarlo? Reserva tu turno y prueba tu tiempo.
+        </div>
+      )}
+    </div>
+  )
+}
+
+function RankingCTA({ isMobile }) {
+  return (
+    <div
+      style={{
+        marginTop: 14,
+        borderRadius: 14,
+        border: '1px solid rgba(59,130,246,0.2)',
+        background: 'linear-gradient(180deg, rgba(59,130,246,0.12), rgba(255,255,255,0.03))',
+        padding: isMobile ? 12 : 14,
+        textAlign: 'center',
+      }}
+    >
+      <div style={{ fontSize: 12, opacity: 0.72, marginBottom: 4 }}>Siguiente paso</div>
+      <div style={{ fontWeight: 800, fontSize: isMobile ? 'clamp(0.96rem, 3.8vw, 1.04rem)' : 17, lineHeight: 1.15 }}>
+        ¿Quieres aparecer en el ranking?
+      </div>
+      <div style={{ opacity: 0.82, marginTop: 6, fontSize: isMobile ? 'clamp(0.76rem, 3vw, 0.86rem)' : 14, lineHeight: 1.35 }}>
+        Reserva, corre tu tanda y compite por el mejor tiempo del local.
+      </div>
     </div>
   )
 }
@@ -318,12 +398,10 @@ function SectionTable({
   buttonRowSmall,
   miniButton,
   miniDanger,
-  onReserveFromRanking,
+  isMobile,
 }) {
-  if (!section) return null
-  const entries = Array.isArray(section.entries) ? section.entries : []
   const { thCenter, tdCenter } = buildCenteredTableStyles(th, td)
-  const sectionMeta = buildRankingSectionMeta(entries)
+  const meta = buildRankingSectionMeta(section.entries)
 
   return (
     <div style={{ marginTop: 12 }}>
@@ -331,176 +409,68 @@ function SectionTable({
         style={{
           display: 'grid',
           gap: 10,
-          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+          gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fit, minmax(140px, 1fr))',
           marginBottom: 14,
         }}
       >
-        <StatBox label="Mejor auto" value={sectionMeta.recordCar} compact />
-        <StatBox label="Juego" value={section.game} compact />
+        <StatBox label="Mejor auto" value={meta.recordCar} compact={isMobile} />
+        <StatBox label="Juego" value={section.game} compact={isMobile} />
+        <StatBox label="Pista / etapa" value={section.track} compact={isMobile} />
+        <StatBox label="Vueltas / tiempos" value={section.entries?.length || 0} compact={isMobile} />
       </div>
 
-      <div style={tableWrap}>
-        <table style={table}>
-          <thead>
-            <tr>
-              <th style={thCenter}>Pos.</th>
-              <th style={thCenter}>Piloto</th>
-              <th style={thCenter}>País</th>
-              <th style={thCenter}>Auto</th>
-              <th style={thCenter}>Tiempo</th>
-              <th style={thCenter}>Gap</th>
-              {isAdmin ? <th style={thCenter}>Admin</th> : onReserveFromRanking ? <th style={thCenter}>Acción</th> : null}
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map((row) => (
-              <tr key={row.id} style={getRankingRowAccent(row.position)}>
-                <td style={tdCenter}>{getRankingBadge(row.position)}</td>
-                <td style={tdCenter}>{row.player}</td>
-                <td style={tdCenter}>{row.country || '-'}</td>
-                <td style={tdCenter}>{row.car}</td>
-                <td style={tdCenter}><strong>{row.time}</strong></td>
-                <td style={tdCenter}>{row.gap}</td>
-                {isAdmin ? (
-                  <td style={tdCenter}>
-                    <div style={{ ...buttonRowSmall, justifyContent: 'center' }}>
-                      <button style={miniButton} onClick={() => startEditLapTime(row)}>Editar</button>
-                      <button style={miniDanger} onClick={() => deleteLapTime(row.id)}>Eliminar</button>
-                    </div>
-                  </td>
-                ) : onReserveFromRanking ? (
-                  <td style={tdCenter}>
-                    <button
-                      type='button'
-                      onClick={() => onReserveFromRanking({
-                        rankingType: 'GENERAL',
-                        position: row.position,
-                        gap: row.gap,
-                        game: row.game || section.game,
-                        track: row.track || section.track,
-                        player: row.player,
-                      })}
-                      style={{
-                        border: '1px solid rgba(41,129,243,0.34)',
-                        borderRadius: 10,
-                        padding: '9px 10px',
-                        background: 'rgba(41,129,243,0.18)',
-                        color: '#ffffff',
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {getReserveActionLabel(row.position)}
-                    </button>
-                  </td>
-                ) : null}
+      {isMobile ? (
+        <div style={{ display: 'grid', gap: 10 }}>
+          {(section.entries || []).map((row) => (
+            <MobileEntryCard
+              key={row.id}
+              row={row}
+              isAdmin={isAdmin}
+              startEditLapTime={startEditLapTime}
+              deleteLapTime={deleteLapTime}
+              miniButton={miniButton}
+              miniDanger={miniDanger}
+            />
+          ))}
+          {!isAdmin ? <RankingCTA isMobile={isMobile} /> : null}
+        </div>
+      ) : (
+        <div style={tableWrap}>
+          <table style={table}>
+            <thead>
+              <tr>
+                <th style={thCenter}>Pos.</th>
+                <th style={thCenter}>Piloto</th>
+                <th style={thCenter}>País</th>
+                <th style={thCenter}>Auto</th>
+                <th style={thCenter}>Tiempo</th>
+                <th style={thCenter}>Gap</th>
+                {isAdmin ? <th style={thCenter}>Admin</th> : null}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
-}
-
-function MobileSectionContent({
-  section,
-  isAdmin,
-  startEditLapTime,
-  deleteLapTime,
-  buttonRowSmall,
-  miniButton,
-  miniDanger,
-  onReserveFromRanking,
-}) {
-  if (!section) return null
-  const entries = Array.isArray(section.entries) ? section.entries : []
-  const sectionMeta = buildRankingSectionMeta(entries)
-
-  return (
-    <div style={{ marginTop: 12 }}>
-      <div
-        style={{
-          display: 'grid',
-          gap: 8,
-          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-          marginBottom: 12,
-        }}
-      >
-        <StatBox label="Mejor auto" value={sectionMeta.recordCar} compact />
-        <StatBox label="Líder" value={sectionMeta.recordHolder} compact strong />
-      </div>
-
-      <div
-        style={{
-          display: 'flex',
-          gap: 8,
-          flexWrap: 'wrap',
-          justifyContent: 'center',
-          marginBottom: 12,
-        }}
-      >
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '8px 12px',
-            borderRadius: 999,
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            fontSize: 12,
-            fontWeight: 800,
-          }}
-        >
-          Récord: {sectionMeta.recordTime}
+            </thead>
+            <tbody>
+              {(section.entries || []).map((row) => (
+                <tr key={row.id} style={getRankingRowAccent(row.position)}>
+                  <td style={tdCenter}>{getRankingBadge(row.position)}</td>
+                  <td style={tdCenter}>{row.player}</td>
+                  <td style={tdCenter}>{row.country || '-'}</td>
+                  <td style={tdCenter}>{row.car}</td>
+                  <td style={tdCenter}><strong>{row.time}</strong></td>
+                  <td style={tdCenter}>{row.gap}</td>
+                  {isAdmin ? (
+                    <td style={tdCenter}>
+                      <div style={{ ...buttonRowSmall, justifyContent: 'center' }}>
+                        <button style={miniButton} onClick={() => startEditLapTime(row)}>Editar</button>
+                        <button style={miniDanger} onClick={() => deleteLapTime(row.id)}>Eliminar</button>
+                      </div>
+                    </td>
+                  ) : null}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '8px 12px',
-            borderRadius: 999,
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            fontSize: 12,
-            fontWeight: 800,
-          }}
-        >
-          {entries.length} registros
-        </div>
-      </div>
-
-      <div style={{ display: 'grid', gap: 10 }}>
-        {entries.map((row) => (
-          <MobileEntryCard
-            key={row.id}
-            row={row}
-            isAdmin={isAdmin}
-            startEditLapTime={startEditLapTime}
-            deleteLapTime={deleteLapTime}
-            buttonRowSmall={buttonRowSmall}
-            miniButton={miniButton}
-            miniDanger={miniDanger}
-            reserveActionLabel={getReserveActionLabel(row.position)}
-            onReserve={
-              onReserveFromRanking
-                ? () =>
-                    onReserveFromRanking({
-                      rankingType: 'GENERAL',
-                      position: row.position,
-                      gap: row.gap,
-                      game: row.game || section.game,
-                      track: row.track || section.track,
-                      player: row.player,
-                    })
-                : null
-            }
-          />
-        ))}
-      </div>
+      )}
     </div>
   )
 }
@@ -529,22 +499,30 @@ export default function GeneralRankingSection({
   buttonRowSmall,
   miniButton,
   miniDanger,
-  onReserveFromRanking,
 }) {
   const globalMeta = useMemo(() => buildGlobalRankingMeta(groupedRanking || []), [groupedRanking])
   const [openSectionKey, setOpenSectionKey] = useState('')
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    const syncViewport = () => setIsMobile(window.innerWidth <= 768)
-    syncViewport()
-    window.addEventListener('resize', syncViewport)
-    return () => window.removeEventListener('resize', syncViewport)
-  }, [])
+  const isMobile = useIsMobile()
 
   const firstSectionKey = (groupedRanking || [])[0]
     ? `${groupedRanking[0].game}__${groupedRanking[0].track}`
     : ''
+
+  const validSectionKeys = useMemo(
+    () => (groupedRanking || []).map((section) => `${section.game}__${section.track}`),
+    [groupedRanking]
+  )
+
+  useEffect(() => {
+    if (!validSectionKeys.length) {
+      if (openSectionKey) setOpenSectionKey('')
+      return
+    }
+
+    if (openSectionKey && !validSectionKeys.includes(openSectionKey)) {
+      setOpenSectionKey(validSectionKeys[0])
+    }
+  }, [openSectionKey, validSectionKeys])
 
   const currentOpenKey = openSectionKey || firstSectionKey
 
@@ -556,7 +534,6 @@ export default function GeneralRankingSection({
           gap: 10,
           gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fit, minmax(160px, 1fr))',
           marginBottom: 18,
-          minWidth: 0,
         }}
       >
         <StatBox label="Secciones" value={globalMeta.sections} compact={isMobile} />
@@ -569,14 +546,30 @@ export default function GeneralRankingSection({
         style={{
           textAlign: 'center',
           marginBottom: 18,
-          padding: isMobile ? 10 : 12,
-          borderRadius: 14,
+          padding: isMobile ? '12px 12px' : 14,
+          borderRadius: 16,
           border: '1px solid rgba(255,255,255,0.08)',
-          background: 'rgba(255,255,255,0.03)',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))',
+          overflow: 'hidden',
         }}
       >
-        <div style={{ fontSize: 11, opacity: 0.72, marginBottom: 4 }}>Mejor referencia general</div>
-        <div style={{ fontSize: isMobile ? 15 : 18, fontWeight: 800, wordBreak: 'break-word', lineHeight: 1.25 }}>{globalMeta.bestRecordLocation}</div>
+        <div style={{ fontSize: 12, opacity: 0.72, marginBottom: 4 }}>Mejor referencia general</div>
+        <div
+          title={globalMeta.bestRecordLocation}
+          style={{
+            fontSize: isMobile ? 'clamp(0.94rem, 3.8vw, 1.06rem)' : 18,
+            fontWeight: 900,
+            lineHeight: 1.1,
+            overflowWrap: 'anywhere',
+          }}
+        >
+          {globalMeta.bestRecordLocation}
+        </div>
+        {!isAdmin ? (
+          <div style={{ opacity: 0.8, marginTop: 8, fontSize: isMobile ? 'clamp(0.74rem, 2.9vw, 0.84rem)' : 14, lineHeight: 1.35 }}>
+            Revisa el tiempo a batir y elige dónde quieres correr para entrar al ranking.
+          </div>
+        ) : null}
       </div>
 
       <FilterCard
@@ -592,11 +585,40 @@ export default function GeneralRankingSection({
         isMobile={isMobile}
       />
 
+      <FilterSummary
+        selectedGame={selectedGame}
+        selectedTrack={selectedTrack}
+        selectedPilot={selectedPilot}
+        isMobile={isMobile}
+      />
+
       {!groupedRanking?.length ? (
-        <CenteredMessage text="No hay tiempos para ese filtro" line={line} />
+        <div
+          style={{
+            textAlign: 'center',
+            padding: isMobile ? '18px 14px' : '20px 18px',
+            borderRadius: 14,
+            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'rgba(255,255,255,0.03)',
+            marginBottom: 18,
+          }}
+        >
+          <div style={{ fontSize: 15, opacity: 0.92, fontWeight: 800, marginBottom: 8 }}>
+            Aún no hay tiempos válidos para ese filtro
+          </div>
+          <div style={{ fontSize: 13, opacity: 0.76, lineHeight: 1.45, maxWidth: 560, margin: '0 auto' }}>
+            Ajusta el juego, la pista o el piloto para ver otros resultados. Si todavía no hay registros, este puede ser tu lugar para marcar el primer tiempo.
+          </div>
+          {!isAdmin ? (
+            <div style={{ opacity: 0.84, marginTop: 12, fontSize: isMobile ? 12 : 13, fontWeight: 700 }}>
+              Reserva tu sesión y entra al ranking.
+            </div>
+          ) : null}
+          <div style={{ ...line, marginTop: 14 }} />
+        </div>
       ) : (
-        <div style={{ display: 'grid', gap: isMobile ? 10 : 12, minWidth: 0 }}>
-          {groupedRanking.filter(Boolean).map((section) => {
+        <div style={{ display: 'grid', gap: 12 }}>
+          {groupedRanking.map((section) => {
             const sectionKey = `${section.game}__${section.track}`
             const isOpen = sectionKey === currentOpenKey
 
@@ -605,38 +627,25 @@ export default function GeneralRankingSection({
                 <CompactSectionCard
                   section={section}
                   isOpen={isOpen}
-                  onToggle={() => setOpenSectionKey(isOpen ? '' : sectionKey)}
                   isMobile={isMobile}
+                  onToggle={() => setOpenSectionKey(isOpen ? '' : sectionKey)}
                 />
 
                 {isOpen ? (
-                  isMobile ? (
-                    <MobileSectionContent
-                      section={section}
-                      isAdmin={isAdmin}
-                      startEditLapTime={startEditLapTime}
-                      deleteLapTime={deleteLapTime}
-                      buttonRowSmall={buttonRowSmall}
-                      miniButton={miniButton}
-                      miniDanger={miniDanger}
-                      onReserveFromRanking={onReserveFromRanking}
-                    />
-                  ) : (
-                    <SectionTable
-                      section={section}
-                      isAdmin={isAdmin}
-                      startEditLapTime={startEditLapTime}
-                      deleteLapTime={deleteLapTime}
-                      tableWrap={tableWrap}
-                      table={table}
-                      th={th}
-                      td={td}
-                      buttonRowSmall={buttonRowSmall}
-                      miniButton={miniButton}
-                      miniDanger={miniDanger}
-                      onReserveFromRanking={onReserveFromRanking}
-                    />
-                  )
+                  <SectionTable
+                    section={section}
+                    isAdmin={isAdmin}
+                    startEditLapTime={startEditLapTime}
+                    deleteLapTime={deleteLapTime}
+                    tableWrap={tableWrap}
+                    table={table}
+                    th={th}
+                    td={td}
+                    buttonRowSmall={buttonRowSmall}
+                    miniButton={miniButton}
+                    miniDanger={miniDanger}
+                    isMobile={isMobile}
+                  />
                 ) : null}
               </div>
             )

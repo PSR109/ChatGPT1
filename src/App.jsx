@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from './db.js'
 import {
   buildTimeOptions,
-  timeToMinutes,
-  getDurationMinutes,
   formatDateChile,
   normalizeText,
   normalizePhone,
@@ -12,18 +10,21 @@ import {
   formatGap,
   getGameOrderIndex,
 } from './utils/psrUtils'
-import { buildDirectWhatsappLink, buildRankingAlertWhatsappMessage } from './utils/whatsappHelper'
+// ACTIVE RANKING LAYER: App.jsx usa GeneralRankingSection como capa principal.
+// Antes de tocar capas heredadas, validar primero este import y su uso real.
 import GeneralRankingSection from './components/GeneralRankingSection'
 import BookingsSection from './components/BookingsSection'
 import ChallengeSection from './components/ChallengeSection'
-import { isChallengeExpired } from './utils/challengeUtils'
+import { isChallengeExpired, pickActiveChallenge } from './utils/challengeUtils'
+import * as bookingEngine from './utils/bookingEngine.js'
 import PointsSection from './components/PointsSection'
 import LayoutHeader from './components/LayoutHeader'
 import LapTimeEditorSection from './components/LapTimeEditorSection'
 import PilotProfileSection from './components/PilotProfileSection'
 import CommercialSection from './components/CommercialSection'
 import ForumSection from './components/ForumSection'
-import RankingAlertQueueSection from './components/RankingAlertQueueSection'
+import MainTabsNav from './components/MainTabsNav'
+import { buildBookingFollowupWhatsappLink } from './utils/whatsappHelper'
 import {
   page,
   container,
@@ -85,6 +86,17 @@ const BOOKING_OPTIONS = {
 
 const TIME_OPTIONS = buildTimeOptions('10:30', '20:00', 30)
 
+
+const getBookingOptionKeyFromBooking = bookingEngine.getBookingOptionKeyFromBooking
+
+const normalizeBookingDraft = bookingEngine.normalizeBookingDraft
+
+const validateBookingPayload = bookingEngine.validateBookingPayload
+
+const getConflicts = bookingEngine.getConflicts
+
+const ADMIN_ACCESS_KEY = import.meta.env.VITE_ADMIN_ACCESS_KEY || 'PSR109PV'
+
 function calculateSingleSimulatorPrice(type, minutes) {
   const m = Number(minutes)
 
@@ -127,54 +139,55 @@ function calculateBookingTotal(configKey, duration) {
   return Math.round(total)
 }
 
-function getSuggestedTimes(bookings, bookingDate, bookingConfig, bookingDuration, editingBookingId = null) {
-  if (!bookingDate) return []
+function isTimeSlotAvailable(bookings, bookingDate, bookingConfig, bookingDuration, slot, editingBookingId = null) {
+  if (!bookingDate || !slot) return true
 
-  const selectedConfig = BOOKING_OPTIONS[bookingConfig]
-  const neededSims = selectedConfig?.simulators || 1
-  const durationMinutes = getDurationMinutes(bookingDuration)
-
-  return TIME_OPTIONS.filter((slot) => {
-    const slotStart = timeToMinutes(slot)
-    const slotEnd = slotStart + durationMinutes
-
-    let reservedSims = 0
-
-    bookings.forEach((booking) => {
-      if (editingBookingId && booking.id === editingBookingId) return
-      if (booking.booking_date !== bookingDate) return
-
-      const existingStart = timeToMinutes(String(booking.booking_time).slice(0, 5))
-      const existingEnd = existingStart + getDurationMinutes(booking.duration)
-      const overlap = slotStart < existingEnd && slotEnd > existingStart
-
-      if (overlap) reservedSims += Number(booking.simulators || 0)
-    })
-
-    return reservedSims + neededSims <= 3
-  })
+  return getConflicts(
+    {
+      booking_date: bookingDate,
+      booking_time: slot,
+      duration: Number(bookingDuration),
+      simulator_config_id: bookingConfig,
+    },
+    bookings,
+    editingBookingId
+  ).length === 0
 }
 
 function buildChallengeLeaderboard(entries) {
-  const sorted = [...entries]
-    .map((entry) => ({
-      ...entry,
-      player: normalizeText(entry.player),
-    }))
+  const safeEntries = Array.isArray(entries) ? entries : []
+
+  const sorted = safeEntries
+    .map((entry, index) => {
+      const timeMs = Number(entry?.time_ms)
+      if (!Number.isFinite(timeMs)) return null
+
+      return {
+        ...entry,
+        id: entry?.id ?? `challenge-entry-${index}`,
+        player: normalizeText(entry?.player || entry?.pilot || entry?.pilot_name || 'SIN NOMBRE'),
+        time: String(entry?.time ?? '').trim() || '-',
+        time_ms: timeMs,
+      }
+    })
+    .filter(Boolean)
     .sort((a, b) => a.time_ms - b.time_ms)
 
-  const best = sorted[0]?.time_ms || 0
+  const best = sorted[0]?.time_ms ?? null
 
   return sorted.map((entry, index) => ({
     ...entry,
     position: index + 1,
-    gap: formatGap(entry.time_ms - best),
+    gap: best === null ? '-' : formatGap(entry.time_ms - best),
   }))
 }
 
 export default function App() {
   const [appMode, setAppMode] = useState('USER')
-  const [viewMode, setViewMode] = useState('GENERAL')
+  const [viewMode, setViewMode] = useState('BOOKINGS')
+  const [isMoreOpen, setIsMoreOpen] = useState(false)
+  const [adminKeyInput, setAdminKeyInput] = useState('')
+  const [adminAccessError, setAdminAccessError] = useState('')
   const isAdmin = appMode === 'ADMIN'
 
   const [lapTimes, setLapTimes] = useState([])
@@ -183,8 +196,6 @@ export default function App() {
   const [weeklyEntries, setWeeklyEntries] = useState([])
   const [monthlyEntries, setMonthlyEntries] = useState([])
   const [bookings, setBookings] = useState([])
-  const [rankingAlertEvents, setRankingAlertEvents] = useState([])
-  const [rankingAlertMessage, setRankingAlertMessage] = useState('')
 
   const [generalGame, setGeneralGame] = useState('TODOS')
   const [generalTrack, setGeneralTrack] = useState('TODOS')
@@ -219,7 +230,10 @@ export default function App() {
   const [bookingDuration, setBookingDuration] = useState(30)
   const [bookingWhatsappReminder, setBookingWhatsappReminder] = useState(false)
   const [bookingMessage, setBookingMessage] = useState('')
+  const [bookingSuccessSummary, setBookingSuccessSummary] = useState(null)
+  const [bookingCommercialContext, setBookingCommercialContext] = useState(null)
   const [editingBookingId, setEditingBookingId] = useState(null)
+  const [isBookingSubmitting, setIsBookingSubmitting] = useState(false)
 
   const [lapEditId, setLapEditId] = useState(null)
   const [lapEditPlayer, setLapEditPlayer] = useState('')
@@ -228,13 +242,15 @@ export default function App() {
   const [lapEditTrack, setLapEditTrack] = useState('')
   const [lapEditCar, setLapEditCar] = useState('')
   const [lapEditTime, setLapEditTime] = useState('')
-  const [lapEditWhatsapp, setLapEditWhatsapp] = useState('')
-  const [lapEditRankingAlertOptIn, setLapEditRankingAlertOptIn] = useState(false)
   const [lapEditMessage, setLapEditMessage] = useState('')
 
   useEffect(() => {
     loadAll()
   }, [])
+
+  useEffect(() => {
+    setIsMoreOpen(false)
+  }, [viewMode])
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -260,7 +276,6 @@ export default function App() {
       loadWeeklyChallenge(),
       loadMonthlyChallenge(),
       loadBookings(),
-      loadRankingAlertEvents(),
     ])
   }
 
@@ -281,58 +296,40 @@ export default function App() {
     setLapTimes(data || [])
   }
 
-  async function loadWeeklyChallenge() {
-    const now = new Date().toISOString()
 
+
+
+  async function loadActiveChallenge(tableName, type, setChallenge, setEntries) {
     const { data, error } = await supabase
-      .from('weekly_challenges')
+      .from(tableName)
       .select('*')
-      .gte('end_at', now)
-      .order('end_at', { ascending: true })
-      .limit(1)
-      .maybeSingle()
+      .order('end_at', { ascending: false })
+      .limit(25)
 
     if (error) {
-      console.log('weekly challenge error:', error)
-      setWeeklyChallenge(null)
-      setWeeklyEntries([])
+      console.log(`${type} challenge error:`, error)
+      setChallenge(null)
+      setEntries([])
       return
     }
 
-    setWeeklyChallenge(data)
+    const activeChallenge = pickActiveChallenge(data, type)
 
-    if (data) {
-      await loadChallengeEntries('weekly', data.id, setWeeklyEntries)
+    setChallenge(activeChallenge)
+
+    if (activeChallenge) {
+      await loadChallengeEntries(type, activeChallenge.id, setEntries)
     } else {
-      setWeeklyEntries([])
+      setEntries([])
     }
   }
 
+  async function loadWeeklyChallenge() {
+    await loadActiveChallenge('weekly_challenges', 'weekly', setWeeklyChallenge, setWeeklyEntries)
+  }
+
   async function loadMonthlyChallenge() {
-    const now = new Date().toISOString()
-
-    const { data, error } = await supabase
-      .from('monthly_challenges')
-      .select('*')
-      .gte('end_at', now)
-      .order('end_at', { ascending: true })
-      .limit(1)
-      .maybeSingle()
-
-    if (error) {
-      console.log('monthly challenge error:', error)
-      setMonthlyChallenge(null)
-      setMonthlyEntries([])
-      return
-    }
-
-    setMonthlyChallenge(data)
-
-    if (data) {
-      await loadChallengeEntries('monthly', data.id, setMonthlyEntries)
-    } else {
-      setMonthlyEntries([])
-    }
+    await loadActiveChallenge('monthly_challenges', 'monthly', setMonthlyChallenge, setMonthlyEntries)
   }
 
   async function loadChallengeEntries(type, challengeId, setter) {
@@ -362,26 +359,29 @@ export default function App() {
     if (error) {
       console.log('bookings error:', error)
       setBookings([])
-      return
+      return []
     }
 
-    setBookings(data || [])
+    const rows = data || []
+    setBookings(rows)
+    return rows
   }
 
-  async function loadRankingAlertEvents() {
+  async function loadBookingsByDate(dateValue) {
+    if (!dateValue) return []
+
     const { data, error } = await supabase
-      .from('ranking_alert_events')
+      .from('bookings')
       .select('*')
-      .order('created_at', { ascending: false })
-      .limit(20)
+      .eq('booking_date', dateValue)
+      .order('booking_time', { ascending: true })
 
     if (error) {
-      console.log('ranking_alert_events error:', error)
-      setRankingAlertEvents([])
-      return
+      console.log('bookings by date error:', error)
+      return null
     }
 
-    setRankingAlertEvents(data || [])
+    return data || []
   }
 
   const normalizedLapTimes = useMemo(() => {
@@ -533,37 +533,13 @@ export default function App() {
       })
   }, [normalizedLapTimes, generalGame, generalTrack, generalSearch])
 
-  const unavailableTimes = useMemo(() => {
-    if (!bookingDate) return []
-
-    const selectedConfig = BOOKING_OPTIONS[bookingConfig]
-    const neededSims = selectedConfig?.simulators || 1
-    const durationMinutes = getDurationMinutes(bookingDuration)
-
-    return TIME_OPTIONS.filter((slot) => {
-      const slotStart = timeToMinutes(slot)
-      const slotEnd = slotStart + durationMinutes
-
-      let reservedSims = 0
-
-      bookings.forEach((booking) => {
-        if (editingBookingId && booking.id === editingBookingId) return
-        if (booking.booking_date !== bookingDate) return
-
-        const existingStart = timeToMinutes(String(booking.booking_time).slice(0, 5))
-        const existingEnd = existingStart + getDurationMinutes(booking.duration)
-        const overlap = slotStart < existingEnd && slotEnd > existingStart
-
-        if (overlap) reservedSims += Number(booking.simulators || 0)
-      })
-
-      return reservedSims + neededSims > 3
-    })
-  }, [bookings, bookingDate, bookingConfig, bookingDuration, editingBookingId])
-
   const availableTimeOptions = useMemo(() => {
-    return TIME_OPTIONS.filter((slot) => !unavailableTimes.includes(slot))
-  }, [unavailableTimes])
+    if (!bookingDate) return TIME_OPTIONS
+
+    return TIME_OPTIONS.filter((slot) =>
+      isTimeSlotAvailable(bookings, bookingDate, bookingConfig, bookingDuration, slot, editingBookingId)
+    )
+  }, [bookings, bookingDate, bookingConfig, bookingDuration, editingBookingId])
 
   useEffect(() => {
     if (!availableTimeOptions.includes(bookingTime)) {
@@ -571,9 +547,6 @@ export default function App() {
     }
   }, [availableTimeOptions, bookingTime])
 
-  const suggestedTimes = useMemo(() => {
-    return getSuggestedTimes(bookings, bookingDate, bookingConfig, bookingDuration, editingBookingId).slice(0, 4)
-  }, [bookings, bookingDate, bookingConfig, bookingDuration, editingBookingId])
 
   async function submitChallengeTime(type) {
     if (!isAdmin) return
@@ -868,7 +841,6 @@ export default function App() {
     }
 
     const payload = {
-      title: `${game} | ${track} | ${car}`,
       game,
       track,
       car,
@@ -1009,91 +981,6 @@ export default function App() {
     await loadChallengeEntries('monthly', monthlyChallenge.id, setMonthlyEntries)
   }
 
-
-  async function tryCreateRankingAlert(newPayload) {
-    const cleanPlayer = normalizeText(newPayload.player)
-
-    const { data: existingRows, error: existingRowsError } = await supabase
-      .from('lap_times')
-      .select('id, player, game, track, time, time_ms, whatsapp_phone, ranking_alert_opt_in')
-      .eq('game', newPayload.game)
-      .eq('track', newPayload.track)
-      .order('time_ms', { ascending: true })
-      .limit(10)
-
-    if (existingRowsError) {
-      console.log('ranking alert compare error:', existingRowsError)
-      return
-    }
-
-    const rivalLeader = (existingRows || []).find((row) => normalizeText(row.player) !== cleanPlayer)
-
-    if (!rivalLeader) return
-    if (Number(newPayload.time_ms || 0) >= Number(rivalLeader.time_ms || 0)) return
-
-    const targetPhone = normalizePhone(rivalLeader.whatsapp_phone || '')
-    const hasOptIn = Boolean(rivalLeader.ranking_alert_opt_in)
-
-    if (!targetPhone || !hasOptIn) return
-
-    const preview = buildRankingAlertWhatsappMessage({
-      targetPlayer: rivalLeader.player,
-      challengerPlayer: newPayload.player,
-      game: newPayload.game,
-      track: newPayload.track,
-      oldTime: rivalLeader.time,
-      newTime: newPayload.time,
-    })
-
-    const { error: alertInsertError } = await supabase.from('ranking_alert_events').insert([
-      {
-        target_player: normalizeText(rivalLeader.player),
-        target_phone: targetPhone,
-        challenger_player: normalizeText(newPayload.player),
-        game: newPayload.game,
-        track: newPayload.track,
-        previous_time: rivalLeader.time,
-        new_time: newPayload.time,
-        message_preview: preview,
-        status: 'PENDING',
-      },
-    ])
-
-    if (alertInsertError) {
-      console.log('ranking alert insert error:', alertInsertError)
-      return
-    }
-
-    setRankingAlertMessage(`Alerta creada para ${normalizeText(rivalLeader.player)}`)
-    await loadRankingAlertEvents()
-  }
-
-  async function markRankingAlertStatus(alertId, status) {
-    const { error } = await supabase
-      .from('ranking_alert_events')
-      .update({ status, processed_at: new Date().toISOString() })
-      .eq('id', alertId)
-
-    if (error) {
-      console.log('ranking alert status error:', error)
-      setRankingAlertMessage('Error al actualizar alerta')
-      return
-    }
-
-    setRankingAlertMessage(
-      status === 'SENT' ? 'Alerta marcada como enviada' : status === 'CANCELLED' ? 'Alerta descartada' : 'Alerta actualizada'
-    )
-    await loadRankingAlertEvents()
-  }
-
-  async function markRankingAlertAsSent(alertId) {
-    await markRankingAlertStatus(alertId, 'SENT')
-  }
-
-  async function dismissRankingAlert(alertId) {
-    await markRankingAlertStatus(alertId, 'CANCELLED')
-  }
-
   function startEditLapTime(entry) {
     if (!isAdmin) return
     setLapEditId(entry.id)
@@ -1103,8 +990,6 @@ export default function App() {
     setLapEditTrack(normalizeText(entry.track))
     setLapEditCar(normalizeText(entry.car))
     setLapEditTime(entry.time)
-    setLapEditWhatsapp(normalizePhone(entry.whatsapp_phone || ''))
-    setLapEditRankingAlertOptIn(Boolean(entry.ranking_alert_opt_in))
     setLapEditMessage('Editando tiempo general')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -1117,8 +1002,6 @@ export default function App() {
     setLapEditTrack('')
     setLapEditCar('')
     setLapEditTime('')
-    setLapEditWhatsapp('')
-    setLapEditRankingAlertOptIn(false)
     setLapEditMessage('')
   }
 
@@ -1145,8 +1028,6 @@ export default function App() {
       car: normalizeText(lapEditCar),
       time: lapEditTime.trim(),
       time_ms: convertToMs(lapEditTime),
-      whatsapp_phone: normalizePhone(lapEditWhatsapp),
-      ranking_alert_opt_in: Boolean(lapEditRankingAlertOptIn),
     }
 
     if (lapEditId) {
@@ -1171,7 +1052,6 @@ export default function App() {
         return
       }
 
-      await tryCreateRankingAlert(payload)
       setLapEditMessage('Tiempo creado correctamente')
     }
 
@@ -1186,8 +1066,6 @@ export default function App() {
       setLapEditTrack('')
       setLapEditCar('')
       setLapEditTime('')
-      setLapEditWhatsapp('')
-      setLapEditRankingAlertOptIn(false)
     }
   }
 
@@ -1211,12 +1089,7 @@ export default function App() {
   function startEditBooking(booking) {
     if (!isAdmin) return
 
-    const configKey =
-      Object.keys(BOOKING_OPTIONS).find(
-        (key) =>
-          BOOKING_OPTIONS[key].label === booking.booking_type &&
-          BOOKING_OPTIONS[key].simulators === Number(booking.simulators)
-      ) || '1_ESTANDAR'
+    const configKey = getBookingOptionKeyFromBooking(booking)
 
     setEditingBookingId(booking.id)
     setBookingClient(normalizeText(booking.client))
@@ -1227,11 +1100,21 @@ export default function App() {
     setBookingConfig(configKey)
     setBookingDuration(Number(booking.duration))
     setBookingWhatsappReminder(Boolean(booking.whatsapp_reminder))
+    clearBookingSuccessSummary()
+    clearBookingCommercialContext()
     setBookingMessage('Editando reserva')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  function cancelEditBooking() {
+  function clearBookingSuccessSummary() {
+    setBookingSuccessSummary(null)
+  }
+
+  function clearBookingCommercialContext() {
+    setBookingCommercialContext(null)
+  }
+
+  function resetBookingForm() {
     setEditingBookingId(null)
     setBookingClient('')
     setBookingPhone('')
@@ -1241,115 +1124,174 @@ export default function App() {
     setBookingConfig('1_ESTANDAR')
     setBookingDuration(30)
     setBookingWhatsappReminder(false)
+  }
+
+  function cancelEditBooking() {
+    resetBookingForm()
+    clearBookingCommercialContext()
+    clearBookingSuccessSummary()
     setBookingMessage('')
   }
 
   async function createOrUpdateBooking() {
     if (!isAdmin && editingBookingId) return
+    if (isBookingSubmitting) return
 
     setBookingMessage('')
+    setIsBookingSubmitting(true)
 
-    if (!bookingClient || !bookingPhone || !bookingDate || !bookingTime) {
-      setBookingMessage('Faltan datos')
-      return
-    }
+    try {
+      const selectedConfig = BOOKING_OPTIONS[bookingConfig]
+      const total = calculateBookingTotal(bookingConfig, bookingDuration)
 
-    if (Number(bookingDuration) < 15) {
-      setBookingMessage('La duración mínima es 15 minutos')
-      return
-    }
+      const draftPayload = normalizeBookingDraft({
+        client: normalizeText(bookingClient),
+        phone: normalizePhone(bookingPhone),
+        whatsapp_reminder: bookingWhatsappReminder,
+        booking_date: bookingDate,
+        booking_time: bookingTime,
+        reservation_kind: bookingKind,
+        simulators: Number(selectedConfig?.simulators || 0),
+        booking_type: selectedConfig?.label || '',
+        duration: Number(bookingDuration),
+        total,
+        simulator_config_id: bookingConfig,
+      })
 
-    const selectedConfig = BOOKING_OPTIONS[bookingConfig]
-    const total = calculateBookingTotal(bookingConfig, bookingDuration)
+      const localValidation = validateBookingPayload(draftPayload, bookings, editingBookingId)
 
-    const bookingStart = timeToMinutes(bookingTime)
-    const bookingEnd = bookingStart + getDurationMinutes(bookingDuration)
+      if (!localValidation.valid) {
+        if (localValidation.conflicts.length > 0) {
+          setBookingMessage('Horario no disponible')
+          return
+        }
 
-    let reservedSims = 0
+        if (
+          !draftPayload.client ||
+          !draftPayload.phone ||
+          !draftPayload.booking_date ||
+          !draftPayload.booking_time
+        ) {
+          setBookingMessage('Faltan datos')
+          return
+        }
 
-    bookings.forEach((booking) => {
-      if (editingBookingId && booking.id === editingBookingId) return
-      if (booking.booking_date !== bookingDate) return
+        setBookingMessage(localValidation.errors[0] || 'No se pudo validar la reserva')
+        return
+      }
 
-      const existingStart = timeToMinutes(String(booking.booking_time).slice(0, 5))
-      const existingEnd = existingStart + getDurationMinutes(booking.duration)
-      const overlap = bookingStart < existingEnd && bookingEnd > existingStart
+      const freshBookings = await loadBookingsByDate(draftPayload.booking_date)
 
-      if (overlap) reservedSims += Number(booking.simulators || 0)
-    })
+      if (freshBookings === null) {
+        setBookingMessage('No se pudo validar la disponibilidad en tiempo real')
+        return
+      }
 
-    if (reservedSims + selectedConfig.simulators > 3) {
-      setBookingMessage(
-        suggestedTimes.length > 0
-          ? `Horario no disponible. Prueba: ${suggestedTimes.join(' / ')}`
-          : 'Horario no disponible'
-      )
-      return
-    }
+      const liveValidation = validateBookingPayload(draftPayload, freshBookings, editingBookingId)
 
-    const payload = {
-      client: normalizeText(bookingClient),
-      phone: normalizePhone(bookingPhone),
-      whatsapp_reminder: bookingWhatsappReminder,
-      booking_date: bookingDate,
-      booking_time: bookingTime,
-      reservation_kind: bookingKind,
-      simulators: selectedConfig.simulators,
-      booking_type: selectedConfig.label,
-      duration: Number(bookingDuration),
-      total,
-    }
+      if (!liveValidation.valid) {
+        setBookings((current) => {
+          const withoutDate = current.filter((item) => item.booking_date !== draftPayload.booking_date)
+          return [...withoutDate, ...freshBookings]
+        })
+        setBookingMessage(
+          liveValidation.conflicts.length > 0
+            ? 'Ese horario acaba de ocuparse. Elige otro horario.'
+            : (liveValidation.errors[0] || 'No se pudo validar la reserva en tiempo real')
+        )
+        return
+      }
 
-    if (editingBookingId) {
-      const { error } = await supabase.from('bookings').update(payload).eq('id', editingBookingId)
+      const payload = {
+        client: draftPayload.client,
+        phone: draftPayload.phone,
+        whatsapp_reminder: draftPayload.whatsapp_reminder,
+        booking_date: draftPayload.booking_date,
+        booking_time: draftPayload.booking_time,
+        reservation_kind: draftPayload.reservation_kind,
+        simulators: draftPayload.simulators,
+        booking_type: draftPayload.booking_type,
+        duration: draftPayload.duration,
+        total: draftPayload.total,
+        standard_simulators: draftPayload.standard_simulators,
+        pro_simulators: draftPayload.pro_simulators,
+      }
+
+      if (editingBookingId) {
+        const { error } = await supabase.from('bookings').update(payload).eq('id', editingBookingId)
+
+        if (error) {
+          console.log('update booking error:', error)
+          setBookingMessage('Error al actualizar reserva')
+          return
+        }
+
+        await loadBookings()
+        cancelEditBooking()
+        setBookingMessage('Reserva actualizada correctamente')
+        return
+      }
+
+      const { error } = await supabase.from('bookings').insert([payload])
 
       if (error) {
-        console.log('update booking error:', error)
-        setBookingMessage('Error al actualizar reserva')
+        console.log('create booking error:', error)
+        setBookingMessage('Error al guardar reserva')
         return
       }
 
       await loadBookings()
-      cancelEditBooking()
-      setBookingMessage('Reserva actualizada correctamente')
-      return
+      const bookingSummary = {
+        client: draftPayload.client,
+        phone: draftPayload.phone,
+        date: formatDateChile(draftPayload.booking_date),
+        time: draftPayload.booking_time,
+        kind: draftPayload.reservation_kind,
+        configLabel: selectedConfig?.label || '',
+        duration: draftPayload.duration,
+        total: draftPayload.total,
+        whatsappReminder: Boolean(draftPayload.whatsapp_reminder),
+      }
+      setBookingSuccessSummary({
+        ...bookingSummary,
+        whatsappLink: buildBookingFollowupWhatsappLink(bookingSummary),
+      })
+      setBookingCommercialContext({
+        source: 'booking_created',
+        kind: draftPayload.reservation_kind,
+        configLabel: selectedConfig?.label || '',
+      })
+      resetBookingForm()
+      setBookingMessage('Reserva creada correctamente')
+    } finally {
+      setIsBookingSubmitting(false)
     }
-
-    const { error } = await supabase.from('bookings').insert([payload])
-
-    if (error) {
-      console.log('create booking error:', error)
-      setBookingMessage('Error al guardar reserva')
-      return
-    }
-
-    await loadBookings()
-    setBookingClient('')
-    setBookingPhone('')
-    setBookingDate('')
-    setBookingTime('10:30')
-    setBookingKind('LOCAL')
-    setBookingConfig('1_ESTANDAR')
-    setBookingDuration(30)
-    setBookingWhatsappReminder(false)
-    setBookingMessage('Reserva creada correctamente')
   }
 
   async function deleteBooking(id) {
     if (!isAdmin) return
+    if (isBookingSubmitting) return
     const ok = window.confirm('¿Eliminar esta reserva?')
     if (!ok) return
 
-    const { error } = await supabase.from('bookings').delete().eq('id', id)
+    setIsBookingSubmitting(true)
+    try {
+      const { error } = await supabase.from('bookings').delete().eq('id', id)
 
-    if (error) {
-      console.log('delete booking error:', error)
-      setBookingMessage('Error al eliminar reserva')
-      return
+      if (error) {
+        console.log('delete booking error:', error)
+        setBookingMessage('Error al eliminar reserva')
+        return
+      }
+
+      if (editingBookingId === id) cancelEditBooking()
+      clearBookingSuccessSummary()
+      clearBookingCommercialContext()
+      await loadBookings()
+      setBookingMessage('Reserva eliminada correctamente')
+    } finally {
+      setIsBookingSubmitting(false)
     }
-
-    if (editingBookingId === id) cancelEditBooking()
-    await loadBookings()
   }
 
   const totalBooking = useMemo(() => {
@@ -1358,6 +1300,12 @@ export default function App() {
 
   const applyCommercialPrefill = (prefill = {}) => {
     const segment = prefill?.segment || 'aprender'
+    clearBookingSuccessSummary()
+    setBookingCommercialContext({
+      source: 'commercial_prefill',
+      segment,
+      sourceLabel: prefill?.sourceLabel || segment,
+    })
 
     if (segment === 'empresa') {
       setBookingKind('EMPRESA')
@@ -1389,46 +1337,6 @@ export default function App() {
     setBookingMessage('Reserva preconfigurada desde sección comercial: Práctica')
   }
 
-  function goToBookingFromRanking({ rankingType = 'GENERAL', position = 99, gap = '-', game = '', track = '', player = '' } = {}) {
-    const rankingLabel =
-      rankingType === 'WEEKLY' ? 'desafío semanal' : rankingType === 'MONTHLY' ? 'desafío mensual' : 'ranking general'
-
-    const isLeader = Number(position) === 1
-    const isTopThree = Number(position) > 1 && Number(position) <= 3
-    const suggestedMinutes = isLeader ? 30 : isTopThree ? 45 : 60
-
-    setViewMode('BOOKINGS')
-    setBookingKind('LOCAL')
-    setBookingConfig(isLeader ? '1_PRO' : '1_ESTANDAR')
-    setBookingDuration(suggestedMinutes)
-
-    const focusLine = isLeader
-      ? `Defiende tu puesto en ${rankingLabel}.`
-      : isTopThree
-        ? `Estás peleando arriba en ${rankingLabel}.`
-        : `Tienes espacio para subir en ${rankingLabel}.`
-
-    const gapLine = !isLeader && gap && gap !== '-'
-      ? `Te separan ${gap} del líder en ${game || '-'} · ${track || '-'}.`
-      : `Combo objetivo: ${game || '-'} · ${track || '-'}.`
-
-    const playerLine = player ? `Piloto objetivo: ${normalizeText(player)}.` : ''
-
-    setBookingMessage(
-      [
-        focusLine,
-        gapLine,
-        playerLine,
-        `Reserva sugerida: ${suggestedMinutes} min para ir por la revancha.`,
-      ]
-        .filter(Boolean)
-        .join(' ')
-    )
-
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-
   useEffect(() => {
     const handler = (event) => {
       setViewMode('BOOKINGS')
@@ -1439,24 +1347,55 @@ export default function App() {
     return () => window.removeEventListener('psr-commercial-booking-prefill', handler)
   }, [])
 
+  function navigateToView(nextView) {
+    setIsMoreOpen(false)
+
+    if (nextView !== 'ADMIN') {
+      setAdminAccessError('')
+      setAdminKeyInput('')
+    }
+
+    setViewMode(nextView)
+  }
+
+  function openAdminAccess() {
+    setAdminAccessError('')
+    setAdminKeyInput('')
+    navigateToView('ADMIN')
+  }
+
+  function handleAdminAccess() {
+    if ((adminKeyInput || '').trim() !== ADMIN_ACCESS_KEY) {
+      setAdminAccessError('Clave incorrecta')
+      return
+    }
+
+    clearBookingSuccessSummary()
+    clearBookingCommercialContext()
+    setAppMode('ADMIN')
+    setAdminAccessError('')
+    setAdminKeyInput('')
+    navigateToView('BOOKINGS')
+  }
+
+  function exitAdminMode() {
+    clearBookingSuccessSummary()
+    clearBookingCommercialContext()
+    setAppMode('USER')
+    setAdminAccessError('')
+    setAdminKeyInput('')
+    navigateToView('BOOKINGS')
+  }
 
   return (
-    <div style={page}>
+    <div style={{ ...page, paddingBottom: 148 }}>
       <div style={container}>
         <LayoutHeader
           appMode={appMode}
-          setAppMode={setAppMode}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
           hero={hero}
           title={title}
           subtitle={subtitle}
-          modeWrap={modeWrap}
-          modeButton={modeButton}
-          modeButtonActive={modeButtonActive}
-          tabs={tabs}
-          tab={tab}
-          tabActive={tabActive}
+          onAdminBadgeClick={isAdmin ? exitAdminMode : undefined}
         />
 
         {viewMode === 'GENERAL' && (
@@ -1476,10 +1415,6 @@ export default function App() {
               setLapEditCar={setLapEditCar}
               lapEditTime={lapEditTime}
               setLapEditTime={setLapEditTime}
-              lapEditWhatsapp={lapEditWhatsapp}
-              setLapEditWhatsapp={setLapEditWhatsapp}
-              lapEditRankingAlertOptIn={lapEditRankingAlertOptIn}
-              setLapEditRankingAlertOptIn={setLapEditRankingAlertOptIn}
               lapEditMessage={lapEditMessage}
               createOrUpdateLapTime={createOrUpdateLapTime}
               isEditingLapTime={Boolean(lapEditId)}
@@ -1492,21 +1427,6 @@ export default function App() {
               buttonRow={buttonRow}
               button={button}
               buttonSecondary={buttonSecondary}
-              messageStyle={messageStyle}
-            />
-
-            <RankingAlertQueueSection
-              isAdmin={isAdmin}
-              alerts={rankingAlertEvents}
-              alertMessage={rankingAlertMessage}
-              onMarkSent={markRankingAlertAsSent}
-              onDismiss={dismissRankingAlert}
-              buildDirectWhatsappLink={buildDirectWhatsappLink}
-              card={card}
-              sectionTitle={sectionTitle}
-              button={button}
-              buttonSecondary={buttonSecondary}
-              miniDanger={miniDanger}
               messageStyle={messageStyle}
             />
 
@@ -1535,7 +1455,6 @@ export default function App() {
               buttonRowSmall={buttonRowSmall}
               miniButton={miniButton}
               miniDanger={miniDanger}
-              onReserveFromRanking={goToBookingFromRanking}
             />
           </>
         )}
@@ -1583,7 +1502,6 @@ export default function App() {
             buttonRowSmall={buttonRowSmall}
             miniButton={miniButton}
             miniDanger={miniDanger}
-            onReserveFromChallenge={goToBookingFromRanking}
           />
         )}
 
@@ -1630,7 +1548,6 @@ export default function App() {
             buttonRowSmall={buttonRowSmall}
             miniButton={miniButton}
             miniDanger={miniDanger}
-            onReserveFromChallenge={goToBookingFromRanking}
           />
         )}
 
@@ -1684,10 +1601,50 @@ export default function App() {
           />
         )}
 
-        {viewMode === 'FORUM' && (
-          <ForumSection
-            isAdmin={isAdmin}
-          />
+
+        {viewMode === 'FORUM' && <ForumSection isAdmin={isAdmin} />}
+
+        {viewMode === 'ADMIN' && (
+          <div
+            style={{
+              ...card,
+              maxWidth: 560,
+              marginLeft: 'auto',
+              marginRight: 'auto',
+              textAlign: 'center',
+            }}
+          >
+            <h2 style={sectionTitle}>{isAdmin ? 'Modo admin activo' : 'Acceso administrador'}</h2>
+
+            {!isAdmin ? (
+              <>
+                <div style={{ ...formGrid, gridTemplateColumns: '1fr', maxWidth: 360, margin: '0 auto 12px' }}>
+                  <input
+                    type="password"
+                    value={adminKeyInput}
+                    onChange={(event) => setAdminKeyInput(event.target.value)}
+                    placeholder="Clave admin"
+                    style={input}
+                  />
+                </div>
+                <div style={{ ...buttonRow, justifyContent: 'center' }}>
+                  <button style={button} onClick={handleAdminAccess}>Entrar como admin</button>
+                  <button style={buttonSecondary} onClick={() => navigateToView('BOOKINGS')}>Volver a reservas</button>
+                </div>
+                {adminAccessError ? <div style={messageStyle}>{adminAccessError}</div> : null}
+              </>
+            ) : (
+              <>
+                <div style={{ color: '#aab6d3', marginBottom: 12 }}>
+                  Ya puedes gestionar rankings, reservas, desafíos y comunidad.
+                </div>
+                <div style={{ ...buttonRow, justifyContent: 'center' }}>
+                  <button style={button} onClick={() => setViewMode('BOOKINGS')}>Ir a reservas</button>
+                  <button style={buttonSecondary} onClick={exitAdminMode}>Salir de admin</button>
+                </div>
+              </>
+            )}
+          </div>
         )}
 
         {viewMode === 'BOOKINGS' && (
@@ -1710,9 +1667,13 @@ export default function App() {
             setBookingDuration={setBookingDuration}
             bookingWhatsappReminder={bookingWhatsappReminder}
             setBookingWhatsappReminder={setBookingWhatsappReminder}
+            bookingSuccessSummary={bookingSuccessSummary}
+            bookingCommercialContext={bookingCommercialContext}
+            clearBookingCommercialContext={clearBookingCommercialContext}
+            clearBookingSuccessSummary={clearBookingSuccessSummary}
             bookingMessage={bookingMessage}
+            isBookingSubmitting={isBookingSubmitting}
             availableTimeOptions={availableTimeOptions}
-            suggestedTimes={suggestedTimes}
             totalBooking={totalBooking}
             createOrUpdateBooking={createOrUpdateBooking}
             cancelEditBooking={cancelEditBooking}
@@ -1743,6 +1704,16 @@ export default function App() {
           />
         )}
       </div>
+
+      <MainTabsNav
+        viewMode={viewMode}
+        onNavigate={navigateToView}
+        isMoreOpen={isMoreOpen}
+        setIsMoreOpen={setIsMoreOpen}
+        isAdmin={isAdmin}
+        onOpenAdmin={openAdminAccess}
+        onExitAdmin={exitAdminMode}
+      />
     </div>
   )
 }

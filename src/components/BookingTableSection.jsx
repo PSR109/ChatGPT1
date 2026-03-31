@@ -1,16 +1,16 @@
-import { useEffect, useState } from 'react'
+import { buildCenteredTableStyles } from '../utils/tableStyles'
+import { getBookingConfigFromBooking } from '../utils/bookingLogic.js'
 import ActionButtonsRow from './ActionButtonsRow'
 import CenteredMessage from './CenteredMessage'
-import { buildCenteredTableStyles } from '../utils/tableStyles'
 
 function formatSimulatorBreakdown(booking) {
-  const standard = Number(booking.standard_quantity || 0)
-  const pro = Number(booking.pro_quantity || 0)
+  const { standardCount, proCount } = getBookingConfigFromBooking(booking)
+  const parts = []
 
-  if (standard > 0 && pro > 0) return `${standard} estándar + ${pro} pro`
-  if (standard > 0) return `${standard} estándar`
-  if (pro > 0) return `${pro} pro`
-  return booking.booking_type || '-'
+  if (standardCount > 0) parts.push(`${standardCount} est.`)
+  if (proCount > 0) parts.push(`${proCount} pro`)
+
+  return parts.join(' + ') || '-'
 }
 
 function TimelineStatusPill({ status }) {
@@ -18,7 +18,7 @@ function TimelineStatusPill({ status }) {
     LIBRE: {
       background: 'rgba(34,197,94,0.12)',
       border: '1px solid rgba(34,197,94,0.28)',
-      color: '#86efac',
+      color: '#bbf7d0',
     },
     PARCIAL: {
       background: 'rgba(245,158,11,0.12)',
@@ -48,63 +48,45 @@ function TimelineStatusPill({ status }) {
   )
 }
 
-function AdminSummary({ bookings, isMobile }) {
+function AdminSummary({ bookings }) {
   const todayCount = bookings.length
   const revenue = bookings.reduce((sum, booking) => sum + Number(booking.total || 0), 0)
-  const whatsappCount = bookings.filter((booking) => booking.whatsapp_reminder).length
-  const eventCount = bookings.filter((booking) => String(booking.reservation_kind || '').toUpperCase() !== 'LOCAL').length
-
-  const summaryItems = [
-    { label: 'Reservas visibles', value: todayCount },
-    { label: 'Venta visible', value: `$${revenue.toLocaleString('es-CL')}` },
-    { label: 'Con recordatorio', value: whatsappCount },
-    { label: 'Eventos / empresas', value: eventCount },
-  ]
 
   return (
     <div
       style={{
         display: 'grid',
         gap: 12,
-        gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fit, minmax(170px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
         marginBottom: 18,
       }}
     >
-      {summaryItems.map((item, index) => (
-        <div
-          key={item.label}
-          style={{
-            border: index === 1 ? '1px solid rgba(34,197,94,0.26)' : '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 16,
-            padding: 14,
-            background: index === 1
-              ? 'linear-gradient(180deg, rgba(34,197,94,0.14), rgba(34,197,94,0.06))'
-              : 'linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03))',
-            textAlign: 'center',
-          }}
-        >
-          <div style={{ fontSize: 11, opacity: 0.74, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{item.label}</div>
-          <div style={{ fontSize: 18, fontWeight: 800, marginTop: 6, wordBreak: 'break-word' }}>{item.value}</div>
-        </div>
-      ))}
+      <div style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 12, background: 'rgba(255,255,255,0.03)', textAlign: 'center' }}>
+        <div style={{ fontSize: 12, opacity: 0.75 }}>Reservas del día</div>
+        <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4 }}>{todayCount}</div>
+      </div>
+      <div style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 12, background: 'rgba(255,255,255,0.03)', textAlign: 'center' }}>
+        <div style={{ fontSize: 12, opacity: 0.75 }}>Venta estimada</div>
+        <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4 }}>${revenue.toLocaleString('es-CL')}</div>
+      </div>
     </div>
   )
 }
 
-function DailyTimeline({ timeline = [], normalizeText, isMobile }) {
+function DailyTimeline({ timeline = [], normalizeText }) {
   if (!timeline.length) return null
 
   return (
     <div style={{ marginBottom: 24 }}>
-      <div style={{ fontSize: 18, fontWeight: 800, textAlign: 'center', marginBottom: 12 }}>
-        Radar de ocupación cercano al horario elegido
+      <div style={{ fontSize: 18, fontWeight: 700, textAlign: 'center', marginBottom: 12 }}>
+        Ocupación cercana al horario elegido
       </div>
 
       <div
         style={{
           display: 'grid',
           gap: 10,
-          gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(220px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
         }}
       >
         {timeline.map((slot) => (
@@ -112,12 +94,12 @@ function DailyTimeline({ timeline = [], normalizeText, isMobile }) {
             key={slot.time}
             style={{
               border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 16,
-              padding: 14,
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03))',
+              borderRadius: 14,
+              padding: 12,
+              background: 'rgba(255,255,255,0.03)',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
               <div style={{ fontSize: 16, fontWeight: 800 }}>{slot.time}</div>
               <TimelineStatusPill status={slot.status} />
             </div>
@@ -129,7 +111,7 @@ function DailyTimeline({ timeline = [], normalizeText, isMobile }) {
               Pro: {slot.proUsed}/1 ocupado
             </div>
 
-            <div style={{ marginTop: 10, fontSize: 12, opacity: 0.7, wordBreak: 'break-word' }}>
+            <div style={{ marginTop: 10, fontSize: 12, opacity: 0.7 }}>
               {slot.relatedBookings.length > 0
                 ? slot.relatedBookings.map((booking) => normalizeText(booking.client)).join(' · ')
                 : 'Sin reservas en este bloque'}
@@ -137,93 +119,6 @@ function DailyTimeline({ timeline = [], normalizeText, isMobile }) {
           </div>
         ))}
       </div>
-    </div>
-  )
-}
-
-function MobileBookingCard({
-  booking,
-  startEditBooking,
-  deleteBooking,
-  normalizeText,
-  normalizePhone,
-  formatDateChile,
-  isAdmin,
-  buttonRowSmall,
-  miniButton,
-  miniDanger,
-}) {
-  return (
-    <div
-      style={{
-        border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 14,
-        padding: 12,
-        background: 'rgba(255,255,255,0.03)',
-      }}
-    >
-      <div style={{ textAlign: 'center', fontWeight: 800, fontSize: 17, marginBottom: 10, wordBreak: 'break-word' }}>
-        {normalizeText(booking.client)}
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
-        <div style={{ border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: 10, textAlign: 'center' }}>
-          <div style={{ fontSize: 12, opacity: 0.7 }}>Teléfono</div>
-          <div style={{ marginTop: 4, fontWeight: 700, wordBreak: 'break-word' }}>{normalizePhone(booking.phone)}</div>
-        </div>
-        <div style={{ border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: 10, textAlign: 'center' }}>
-          <div style={{ fontSize: 12, opacity: 0.7 }}>Fecha</div>
-          <div style={{ marginTop: 4, fontWeight: 700 }}>{formatDateChile(booking.booking_date)}</div>
-        </div>
-        <div style={{ border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: 10, textAlign: 'center' }}>
-          <div style={{ fontSize: 12, opacity: 0.7 }}>Hora</div>
-          <div style={{ marginTop: 4, fontWeight: 700 }}>{String(booking.booking_time).slice(0, 5)}</div>
-        </div>
-        <div style={{ border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: 10, textAlign: 'center' }}>
-          <div style={{ fontSize: 12, opacity: 0.7 }}>Tipo</div>
-          <div style={{ marginTop: 4, fontWeight: 700, wordBreak: 'break-word' }}>{booking.reservation_kind || '-'}</div>
-        </div>
-        <div style={{ border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: 10, textAlign: 'center' }}>
-          <div style={{ fontSize: 12, opacity: 0.7 }}>Configuración</div>
-          <div style={{ marginTop: 4, fontWeight: 700, wordBreak: 'break-word' }}>{formatSimulatorBreakdown(booking)}</div>
-        </div>
-        <div style={{ border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: 10, textAlign: 'center' }}>
-          <div style={{ fontSize: 12, opacity: 0.7 }}>Total</div>
-          <div style={{ marginTop: 4, fontWeight: 700 }}>${Number(booking.total || 0).toLocaleString('es-CL')}</div>
-        </div>
-      </div>
-
-      <div style={{ textAlign: 'center', marginTop: 10, fontSize: 13, opacity: 0.8 }}>
-        {booking.duration} min · {booking.simulators} simulador(es)
-      </div>
-
-      {isAdmin ? (
-        <div
-          style={{
-            marginTop: 10,
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: 12,
-            padding: 10,
-            background: 'rgba(255,255,255,0.025)',
-            textAlign: 'center',
-          }}
-        >
-          <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.66 }}>Admin</div>
-          <div style={{ marginTop: 4, fontSize: 13, fontWeight: 700 }}>Edita o elimina esta reserva sin salir del panel</div>
-        </div>
-      ) : null}
-
-      {isAdmin ? (
-        <div style={{ marginTop: 10 }}>
-          <ActionButtonsRow
-            onEdit={() => startEditBooking(booking)}
-            onDelete={() => deleteBooking(booking.id)}
-            buttonRowSmall={{ ...buttonRowSmall, justifyContent: 'center' }}
-            miniButton={miniButton}
-            miniDanger={miniDanger}
-          />
-        </div>
-      ) : null}
     </div>
   )
 }
@@ -246,61 +141,20 @@ export default function BookingTableSection({
   buttonRowSmall,
   miniButton,
   miniDanger,
+  isBookingSubmitting = false,
 }) {
   const { thCenter, tdCenter } = buildCenteredTableStyles(th, td)
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    const syncViewport = () => setIsMobile(window.innerWidth <= 768)
-    syncViewport()
-    window.addEventListener('resize', syncViewport)
-    return () => window.removeEventListener('resize', syncViewport)
-  }, [])
 
   return (
     <>
-      <div
-        style={{
-          border: '1px solid rgba(59,130,246,0.20)',
-          borderRadius: 18,
-          padding: isMobile ? 14 : 18,
-          background: 'linear-gradient(135deg, rgba(59,130,246,0.14), rgba(34,197,94,0.10))',
-          textAlign: 'center',
-          marginBottom: 18,
-        }}
-      >
-        <div style={{ fontSize: isMobile ? 20 : 24, fontWeight: 900 }}>Panel admin de reservas</div>
-        <div style={{ marginTop: 8, opacity: 0.84, maxWidth: 820, marginInline: 'auto', lineHeight: 1.45 }}>
-          Visualiza ocupación, ventas y reservas activas con un formato más claro para operar rápido desde teléfono o escritorio.
-        </div>
-      </div>
-
       {operationDate ? (
-        <DailyTimeline timeline={dailyTimeline} normalizeText={normalizeText} isMobile={isMobile} />
+        <DailyTimeline timeline={dailyTimeline} normalizeText={normalizeText} />
       ) : null}
 
-      <AdminSummary bookings={bookings} isMobile={isMobile} />
+      <AdminSummary bookings={bookings} />
 
       {bookings.length === 0 ? (
-        <CenteredMessage text='Aún no hay reservas' line={line} />
-      ) : isMobile ? (
-        <div style={{ display: 'grid', gap: 10 }}>
-          {bookings.map((booking) => (
-            <MobileBookingCard
-              key={booking.id}
-              booking={booking}
-              startEditBooking={startEditBooking}
-              deleteBooking={deleteBooking}
-              normalizeText={normalizeText}
-              normalizePhone={normalizePhone}
-              formatDateChile={formatDateChile}
-              isAdmin={isAdmin}
-              buttonRowSmall={buttonRowSmall}
-              miniButton={miniButton}
-              miniDanger={miniDanger}
-            />
-          ))}
-        </div>
+        <CenteredMessage text="Aún no hay reservas" line={line} />
       ) : (
         <div style={tableWrap}>
           <table style={table}>
@@ -315,7 +169,7 @@ export default function BookingTableSection({
                 <th style={thCenter}>Simuladores</th>
                 <th style={thCenter}>Duración</th>
                 <th style={thCenter}>Total</th>
-                {isAdmin ? <th style={thCenter}>Acciones admin</th> : null}
+                {isAdmin ? <th style={thCenter}>Acciones</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -338,6 +192,7 @@ export default function BookingTableSection({
                         buttonRowSmall={buttonRowSmall}
                         miniButton={miniButton}
                         miniDanger={miniDanger}
+                        disabled={isBookingSubmitting}
                       />
                     </td>
                   ) : null}

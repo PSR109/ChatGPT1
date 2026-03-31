@@ -1,3 +1,9 @@
+/**
+ * LEGACY / NO ACTIVO EN EL FLUJO PRINCIPAL
+ * Archivo heredado de reservas.
+ * No está conectado desde src/App.jsx ni desde la navegación principal actual.
+ * Mantener solo como referencia histórica/compatibilidad hasta una limpieza mayor.
+ */
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import {

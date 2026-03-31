@@ -1,3 +1,9 @@
+/**
+ * LEGACY / NO ACTIVO EN EL FLUJO PRINCIPAL
+ * Archivo heredado del perfil de piloto.
+ * No está conectado desde src/App.jsx ni desde la navegación principal actual.
+ * No modificar como si fuera la capa principal.
+ */
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import {

@@ -1,3 +1,8 @@
+/**
+ * LEGACY / NO ACTIVO EN EL FLUJO PRINCIPAL
+ * Este archivo no gobierna la navegación ni los textos críticos de la app actual.
+ * No asumir que es la fuente vigente sin reconectar explícitamente su uso.
+ */
 export const APP_TABS = [
   { key: 'ranking-general', label: 'Ranking general' },
   { key: 'ranking-semanal', label: 'Ranking semanal' },
@@ -28,7 +33,7 @@ export const BOOKING_TEXT = {
 };
 
 export const ADMIN_TEXT = {
-  title: 'Panel admin',
+  title: 'Modo admin',
   quickActions: 'Acciones rápidas',
   recentActivity: 'Actividad reciente',
   criticalControls: 'Controles críticos',

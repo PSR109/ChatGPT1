@@ -1,3 +1,8 @@
+/**
+ * LEGACY / NO ACTIVO EN EL FLUJO PRINCIPAL
+ * La capa comercial actual no depende de este catálogo como fuente principal.
+ * Mantener solo como referencia hasta una limpieza controlada.
+ */
 export const commercialPackages = {
   aprender: {
     tab: "Aprender / practicar",

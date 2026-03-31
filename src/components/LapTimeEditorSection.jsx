@@ -73,7 +73,7 @@ export default function LapTimeEditorSection({
     Boolean(lapEditTime)
 
   return (
-    <SectionCard title='🛠️ Admin tiempos' card={card} sectionTitle={sectionTitle}>
+    <SectionCard title='🛠️ Gestión de tiempos' card={card} sectionTitle={sectionTitle}>
       <div
         style={{
           border: '1px solid rgba(59,130,246,0.20)',
@@ -85,9 +85,9 @@ export default function LapTimeEditorSection({
           boxShadow: '0 16px 34px rgba(8,15,35,0.24)',
         }}
       >
-        <div style={{ fontSize: isMobile ? 20 : 24, fontWeight: 900 }}>Panel rápido de tiempos</div>
+        <div style={{ fontSize: isMobile ? 20 : 24, fontWeight: 900 }}>Carga rápida de tiempos</div>
         <div style={{ marginTop: 8, opacity: 0.82, maxWidth: 780, marginInline: 'auto', lineHeight: 1.45 }}>
-          Carga, corrige y ordena registros sin salir de la vista principal. Diseñado para editar rápido desde teléfono o tablet.
+          Carga o corrige registros sin salir de la vista principal. Pensado para hacerlo rápido desde teléfono, tablet o PC.
         </div>
 
         <div

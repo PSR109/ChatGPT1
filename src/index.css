@@ -78,3 +78,33 @@ input::placeholder,
 textarea::placeholder {
   text-transform: uppercase;
 }
+
+
+html,
+body,
+#root {
+  width: 100%;
+  overflow-x: clip;
+}
+
+.psr-center-app,
+.psr-center-app * {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.psr-center-app {
+  text-align: center;
+}
+
+.psr-center-app :is(h1, h2, h3, h4, h5, h6, p, span, small, strong, label, a, li, div, button, th, td) {
+  text-align: center;
+}
+
+.psr-center-app input,
+.psr-center-app textarea,
+.psr-center-app select,
+.psr-center-app input::placeholder,
+.psr-center-app textarea::placeholder {
+  text-align: center;
+}

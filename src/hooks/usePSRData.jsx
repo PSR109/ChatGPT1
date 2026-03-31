@@ -1,3 +1,8 @@
+/**
+ * LEGACY / NO ACTIVO EN EL FLUJO PRINCIPAL
+ * Hook heredado no conectado al flujo principal actual.
+ * La carga de datos vigente está resuelta directamente en App.jsx y capas activas.
+ */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../db.js'
 import {

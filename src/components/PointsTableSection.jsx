@@ -1,3 +1,8 @@
+/**
+ * LEGACY / NO ACTIVO EN EL FLUJO PRINCIPAL
+ * La vista de puntos actual se resuelve desde PointsSection.jsx.
+ * Este archivo queda como remanente heredado y no es el entry principal actual.
+ */
 import { buildCenteredTableStyles } from '../utils/tableStyles'
 export default function PointsTableSection({ pointsLeaderboard, tableWrap, table, th, td }) {
   const { thCenter, tdCenter } = buildCenteredTableStyles(th, td)

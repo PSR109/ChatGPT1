@@ -1,115 +1,150 @@
-export const BOOKING_LIMITS = {
-  standard: 2,
-  pro: 1,
+/**
+ * COMPATIBILIDAD / WRAPPER
+ * Este archivo ya no debe contener lógica principal de reservas.
+ * Mantiene exports heredados delegando en bookingEngine.js para no romper componentes.
+ */
+import * as bookingEngine from './bookingEngine.js'
+
+const OPEN_MINUTES = Number(bookingEngine.OPEN_MINUTES ?? 630)
+const CLOSE_MINUTES = Number(bookingEngine.CLOSE_MINUTES ?? 1200)
+const SLOT_STEP = 30
+
+const timeToMinutes = (value) => {
+  if (typeof bookingEngine.timeToMinutes === 'function') {
+    return bookingEngine.timeToMinutes(value)
+  }
+
+  const [hours, minutes] = String(value ?? '').slice(0, 5).split(':').map(Number)
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null
+  return (hours * 60) + minutes
 }
 
-export function getBookingLabel(standardCount, proCount) {
-  const standard = Number(standardCount || 0)
-  const pro = Number(proCount || 0)
+const minutesToTime = (value) => {
+  if (typeof bookingEngine.minutesToTime === 'function') {
+    return bookingEngine.minutesToTime(value)
+  }
 
-  if (standard === 1 && pro === 0) return '1 ESTÁNDAR'
-  if (standard === 0 && pro === 1) return '1 PRO'
-  if (standard === 2 && pro === 0) return '2 ESTÁNDAR'
-  if (standard === 1 && pro === 1) return '1 ESTÁNDAR + 1 PRO'
-  if (standard === 2 && pro === 1) return '2 ESTÁNDAR + 1 PRO'
-
-  const parts = []
-  if (standard > 0) parts.push(`${standard} ESTÁNDAR`)
-  if (pro > 0) parts.push(`${pro} PRO`)
-  return parts.join(' + ') || 'SIN CONFIGURACIÓN'
-}
-
-export function parseBookingTypeLabel(label = '', simulators = 0) {
-  const cleanLabel = String(label || '').toUpperCase().trim()
-
-  if (cleanLabel.includes('2 ESTÁNDAR + 1 PRO')) return { standardCount: 2, proCount: 1 }
-  if (cleanLabel.includes('1 ESTÁNDAR + 1 PRO')) return { standardCount: 1, proCount: 1 }
-  if (cleanLabel.includes('2 ESTÁNDAR')) return { standardCount: 2, proCount: 0 }
-  if (cleanLabel.includes('1 ESTÁNDAR')) return { standardCount: 1, proCount: 0 }
-  if (cleanLabel.includes('1 PRO')) return { standardCount: 0, proCount: 1 }
-
-  const total = Number(simulators || 0)
-  if (total >= 3) return { standardCount: 2, proCount: 1 }
-  if (total === 2) return { standardCount: 2, proCount: 0 }
-  if (total === 1) return { standardCount: 1, proCount: 0 }
-
-  return { standardCount: 0, proCount: 0 }
-}
-
-export function getBookingConfigFromBooking(booking) {
-  return parseBookingTypeLabel(booking?.booking_type, booking?.simulators)
-}
-
-function timeToMinutes(time) {
-  const [h, m] = String(time || '00:00').slice(0, 5).split(':').map(Number)
-  return (Number(h || 0) * 60) + Number(m || 0)
-}
-
-function minutesToTime(minutes) {
-  const hh = String(Math.floor(minutes / 60)).padStart(2, '0')
-  const mm = String(minutes % 60).padStart(2, '0')
+  const safe = Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0
+  const hh = String(Math.floor(safe / 60)).padStart(2, '0')
+  const mm = String(safe % 60).padStart(2, '0')
   return `${hh}:${mm}`
 }
 
-function getDurationMinutes(duration) {
-  return Number(duration || 0)
+const normalizeBooking = (booking = {}) => {
+  if (typeof bookingEngine.normalizeBookingDraft === 'function') {
+    return bookingEngine.normalizeBookingDraft(booking)
+  }
+
+  return { ...booking }
 }
 
-export function buildDailyTimeline(bookings = [], bookingDate = '', intervalMinutes = 30) {
-  if (!bookingDate) return []
+const getBookingRange = (booking = {}) => {
+  const normalized = normalizeBooking(booking)
+  const start = timeToMinutes(normalized.booking_time)
+  const duration = Math.max(15, Number(normalized.duration || 30) || 30)
 
-  const startMinutes = 10 * 60 + 30
-  const endMinutes = 20 * 60
-  const dayBookings = bookings.filter((booking) => booking.booking_date === bookingDate)
-  const slots = []
+  if (start === null) {
+    return { start: null, end: null }
+  }
 
-  for (let minute = startMinutes; minute < endMinutes; minute += intervalMinutes) {
-    let standardUsed = 0
-    let proUsed = 0
-    const relatedBookings = []
+  return {
+    start,
+    end: start + duration,
+  }
+}
 
-    dayBookings.forEach((booking) => {
-      const bookingStart = timeToMinutes(String(booking.booking_time).slice(0, 5))
-      const bookingEnd = bookingStart + getDurationMinutes(booking.duration)
-      const overlaps = minute >= bookingStart && minute < bookingEnd
+/**
+ * Fuente de verdad:
+ * usar siempre los campos persistidos standard_simulators y pro_simulators.
+ */
+export const getSimulatorBreakdown = (booking = {}) => {
+  const standard = Number(booking.standard_simulators ?? 0)
+  const pro = Number(booking.pro_simulators ?? 0)
 
-      if (!overlaps) return
+  return {
+    standard,
+    pro,
+    total: standard + pro,
+  }
+}
 
-      const config = getBookingConfigFromBooking(booking)
-      standardUsed += config.standardCount
-      proUsed += config.proCount
-      relatedBookings.push(booking)
+export const getBookingConfigFromBooking = (booking = {}) => {
+  const { standard, pro, total } = getSimulatorBreakdown(booking)
+
+  return {
+    standard,
+    pro,
+    total,
+    standardCount: standard,
+    proCount: pro,
+  }
+}
+
+export const buildDailyTimeline = (bookings = [], operationDate = '') => {
+  if (!operationDate) return []
+
+  const dayBookings = (bookings || []).filter(
+    (booking) => String(booking?.booking_date ?? '') === String(operationDate)
+  )
+
+  const timeline = []
+
+  for (let minutes = OPEN_MINUTES; minutes < CLOSE_MINUTES; minutes += SLOT_STEP) {
+    const relatedBookings = dayBookings.filter((booking) => {
+      const range = getBookingRange(booking)
+      if (range.start === null || range.end === null) return false
+      return minutes < range.end && range.start < (minutes + SLOT_STEP)
     })
 
-    const fullyBusy = standardUsed >= BOOKING_LIMITS.standard && proUsed >= BOOKING_LIMITS.pro
-    const partiallyBusy = !fullyBusy && (standardUsed > 0 || proUsed > 0)
+    const usage = relatedBookings.reduce(
+      (acc, booking) => {
+        const config = getSimulatorBreakdown(booking)
+        acc.standardUsed += config.standard
+        acc.proUsed += config.pro
+        return acc
+      },
+      { standardUsed: 0, proUsed: 0 }
+    )
 
-    slots.push({
-      time: minutesToTime(minute),
-      standardUsed,
-      proUsed,
-      standardAvailable: Math.max(0, BOOKING_LIMITS.standard - standardUsed),
-      proAvailable: Math.max(0, BOOKING_LIMITS.pro - proUsed),
-      status: fullyBusy ? 'COMPLETO' : partiallyBusy ? 'PARCIAL' : 'LIBRE',
+    const status =
+      usage.standardUsed >= 2 && usage.proUsed >= 1
+        ? 'full'
+        : usage.standardUsed > 0 || usage.proUsed > 0
+          ? 'partial'
+          : 'free'
+
+    timeline.push({
+      time: minutesToTime(minutes),
+      standardUsed: usage.standardUsed,
+      proUsed: usage.proUsed,
+      status,
       relatedBookings,
-      minute,
     })
   }
 
-  return slots
+  return timeline
 }
 
-export function buildFocusedTimeline(timeline = [], focusTime = '') {
-  if (!timeline.length) return []
+export const buildFocusedTimeline = (timeline = [], bookingTime = '') => {
+  if (!Array.isArray(timeline) || timeline.length === 0) return []
 
-  const focusMinute = focusTime
-    ? timeToMinutes(focusTime)
-    : timeline.find((slot) => slot.relatedBookings.length > 0)?.minute ?? timeline[0].minute
+  const target = timeToMinutes(bookingTime)
+  if (target === null) {
+    return timeline.slice(0, 4)
+  }
 
-  const minMinute = focusMinute - 120
-  const maxMinute = focusMinute + 120
+  const indexed = timeline.map((slot, index) => ({
+    slot,
+    index,
+    distance: Math.abs(timeToMinutes(slot.time) - target),
+  }))
 
-  const visible = timeline.filter((slot) => slot.minute >= minMinute && slot.minute <= maxMinute)
+  indexed.sort((a, b) => a.distance - b.distance || a.index - b.index)
 
-  return visible.length > 0 ? visible : timeline.slice(0, 5)
+  const selectedIndexes = indexed
+    .slice(0, 4)
+    .map((item) => item.index)
+    .sort((a, b) => a - b)
+
+  return selectedIndexes.map((index) => timeline[index]).filter(Boolean)
 }

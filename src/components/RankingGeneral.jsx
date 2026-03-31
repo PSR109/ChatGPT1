@@ -1,3 +1,12 @@
+/**
+ * LEGACY / HEREDADO
+ * No usar este archivo como capa principal sin validar primero App.jsx.
+ */
+/*
+ * PSR RANKING MAP
+ * HEREDADO / NO ACTIVO: este archivo no está importado por src/App.jsx
+ * ni por el flujo principal actual. No tocar a ciegas.
+ */
 import React, { useMemo } from 'react'
 import {
   buttonRowSmall,
