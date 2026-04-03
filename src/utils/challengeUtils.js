@@ -180,6 +180,10 @@ export function parseChallengeDate(endAt) {
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
+function hasRawChallengeEndAt(challenge = {}) {
+  return String(challenge?.end_at ?? '').trim().length > 0
+}
+
 export function hasExplicitChallengeEndAt(challenge = {}) {
   return Boolean(parseChallengeDate(challenge?.end_at))
 }
@@ -187,11 +191,17 @@ export function hasExplicitChallengeEndAt(challenge = {}) {
 export function normalizeChallengeRecord(challenge = {}, type) {
   if (!challenge || typeof challenge !== 'object') return null
 
+  const normalizedGame = String(challenge.game ?? '').trim()
+  const normalizedTrack = String(challenge.track ?? '').trim()
+  const normalizedCar = String(challenge.car ?? '').trim()
+  const normalizedTitle = String(challenge.title ?? challenge.name ?? '').trim()
+
   return {
     ...challenge,
-    game: String(challenge.game ?? '').trim() || '-',
-    track: String(challenge.track ?? '').trim() || '-',
-    car: String(challenge.car ?? '').trim() || '-',
+    title: normalizedTitle || null,
+    game: normalizedGame || '-',
+    track: normalizedTrack || '-',
+    car: normalizedCar || '-',
     end_at: parseChallengeDate(challenge.end_at)?.toISOString() || null,
     type,
   }
@@ -225,7 +235,7 @@ export function pickActiveChallenge(challenges = [], type) {
   }
 
   const legacyCandidates = safeChallenges
-    .filter((challenge) => !hasExplicitChallengeEndAt(challenge) && !isChallengeExpired(challenge.end_at, type))
+    .filter((challenge) => !hasRawChallengeEndAt(challenge))
     .sort((a, b) => getChallengeSortTimestamp(b) - getChallengeSortTimestamp(a))
 
   return normalizeChallengeRecord(legacyCandidates[0], type)

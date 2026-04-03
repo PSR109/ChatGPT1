@@ -1,8 +1,7 @@
 import { buildCenteredTableStyles } from '../utils/tableStyles'
-import { getBookingConfigFromBooking } from '../utils/bookingLogic.js'
+import { getBookingConfigFromBooking, getBookingTotalValue, getCommercialBookingKindLabel } from '../utils/bookingEngine.js'
 import ActionButtonsRow from './ActionButtonsRow'
 import CenteredMessage from './CenteredMessage'
-
 function formatSimulatorBreakdown(booking) {
   const { standardCount, proCount } = getBookingConfigFromBooking(booking)
   const parts = []
@@ -14,6 +13,15 @@ function formatSimulatorBreakdown(booking) {
 }
 
 function TimelineStatusPill({ status }) {
+  const normalizedStatus = String(status || '').trim().toUpperCase()
+  const statusKey = normalizedStatus === 'FREE'
+    ? 'LIBRE'
+    : normalizedStatus === 'PARTIAL'
+      ? 'PARCIAL'
+      : normalizedStatus === 'FULL'
+        ? 'COMPLETO'
+        : normalizedStatus
+
   const styles = {
     LIBRE: {
       background: 'rgba(34,197,94,0.12)',
@@ -35,7 +43,7 @@ function TimelineStatusPill({ status }) {
   return (
     <span
       style={{
-        ...styles[status],
+        ...(styles[statusKey] || styles.PARCIAL),
         borderRadius: 999,
         padding: '4px 10px',
         fontSize: 12,
@@ -43,14 +51,15 @@ function TimelineStatusPill({ status }) {
         display: 'inline-block',
       }}
     >
-      {status}
+      {statusKey || 'PARCIAL'}
     </span>
   )
 }
 
-function AdminSummary({ bookings }) {
-  const todayCount = bookings.length
-  const revenue = bookings.reduce((sum, booking) => sum + Number(booking.total || 0), 0)
+function AdminSummary({ bookings, operationDate }) {
+  const bookingsCount = bookings.length
+  const revenue = bookings.reduce((sum, booking) => sum + getBookingTotalValue(booking), 0)
+  const reservationsLabel = operationDate ? 'Reservas del día' : 'Reservas visibles'
 
   return (
     <div
@@ -62,8 +71,8 @@ function AdminSummary({ bookings }) {
       }}
     >
       <div style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 12, background: 'rgba(255,255,255,0.03)', textAlign: 'center' }}>
-        <div style={{ fontSize: 12, opacity: 0.75 }}>Reservas del día</div>
-        <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4 }}>{todayCount}</div>
+        <div style={{ fontSize: 12, opacity: 0.75 }}>{reservationsLabel}</div>
+        <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4 }}>{bookingsCount}</div>
       </div>
       <div style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 12, background: 'rgba(255,255,255,0.03)', textAlign: 'center' }}>
         <div style={{ fontSize: 12, opacity: 0.75 }}>Venta estimada</div>
@@ -151,7 +160,7 @@ export default function BookingTableSection({
         <DailyTimeline timeline={dailyTimeline} normalizeText={normalizeText} />
       ) : null}
 
-      <AdminSummary bookings={bookings} />
+      <AdminSummary bookings={bookings} operationDate={operationDate} />
 
       {bookings.length === 0 ? (
         <CenteredMessage text="Aún no hay reservas" line={line} />
@@ -179,11 +188,11 @@ export default function BookingTableSection({
                   <td style={tdCenter}>{normalizePhone(booking.phone)}</td>
                   <td style={tdCenter}>{formatDateChile(booking.booking_date)}</td>
                   <td style={tdCenter}>{String(booking.booking_time).slice(0, 5)}</td>
-                  <td style={tdCenter}>{booking.reservation_kind || '-'}</td>
-                  <td style={tdCenter}>{formatSimulatorBreakdown(booking)}</td>
+                  <td style={tdCenter}>{getCommercialBookingKindLabel(booking.reservation_kind)}</td>
+                  <td style={{ ...tdCenter, whiteSpace: 'normal', overflowWrap: 'anywhere', wordBreak: 'break-word', fontSize: 12, lineHeight: 1.25 }}>{formatSimulatorBreakdown(booking)}</td>
                   <td style={tdCenter}>{booking.simulators}</td>
                   <td style={tdCenter}>{booking.duration} min</td>
-                  <td style={tdCenter}>${Number(booking.total || 0).toLocaleString('es-CL')}</td>
+                  <td style={tdCenter}>${getBookingTotalValue(booking).toLocaleString('es-CL')}</td>
                   {isAdmin ? (
                     <td style={tdCenter}>
                       <ActionButtonsRow

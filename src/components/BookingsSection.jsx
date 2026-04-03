@@ -3,13 +3,13 @@
  * Este contenedor sí está conectado al flujo principal desde src/App.jsx.
  * Los cambios del flujo real de reservas deben validarse aquí y en bookingEngine.js.
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import BookingFormSection from './BookingFormSection'
 import BookingTableSection from './BookingTableSection'
 import SectionCard from './SectionCard'
 import SectionContentSpacing from './SectionContentSpacing'
-import { buildDailyTimeline, buildFocusedTimeline } from '../utils/bookingLogic'
+import { buildDailyTimeline, buildFocusedTimeline, getTodayDateString, timeToMinutes } from '../utils/bookingEngine.js'
 
 const publicIntroCardStyle = {
   display: 'grid',
@@ -96,28 +96,16 @@ const trustPillStyle = {
 }
 
 
-function toTimeMinutes(value) {
-  const [hours = '0', minutes = '0'] = String(value || '0:0').split(':')
-  return (Number(hours) * 60) + Number(minutes)
-}
 function sortBookingsNewestFirst(bookings = []) {
   return [...bookings].sort((a, b) => {
     const dateCompare = String(b.booking_date || '').localeCompare(String(a.booking_date || ''))
     if (dateCompare !== 0) return dateCompare
 
-    const timeCompare = toTimeMinutes(String(b.booking_time || '').slice(0, 5)) - toTimeMinutes(String(a.booking_time || '').slice(0, 5))
+    const timeCompare = (timeToMinutes(String(b.booking_time || '').slice(0, 5)) || 0) - (timeToMinutes(String(a.booking_time || '').slice(0, 5)) || 0)
     if (timeCompare !== 0) return timeCompare
 
     return Number(b.id || 0) - Number(a.id || 0)
   })
-}
-
-function getTodayDateString() {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
 }
 
 
@@ -145,11 +133,17 @@ export default function BookingsSection({
   clearBookingCommercialContext,
   clearBookingSuccessSummary,
   bookingMessage,
+  bookingSuggestedTimes,
+  bookingSuggestedDates,
+  editingConflictWarning,
   isBookingSubmitting,
   availableTimeOptions,
+  minPublicBookingDate,
   totalBooking,
   createOrUpdateBooking,
   cancelEditBooking,
+  onBookingDraftAbandon,
+  onBookingCancel,
   bookings,
   startEditBooking,
   deleteBooking,
@@ -178,13 +172,8 @@ export default function BookingsSection({
   const [adminViewMode, setAdminViewMode] = useState('all')
   const [adminOperationDate, setAdminOperationDate] = useState(bookingDate || getTodayDateString())
 
-  useEffect(() => {
-    if (bookingDate) {
-      setAdminOperationDate(bookingDate)
-    }
-  }, [bookingDate])
-
-  const operationDate = isAdmin && adminViewMode === 'day' ? adminOperationDate : ''
+  const syncedAdminOperationDate = bookingDate || adminOperationDate
+  const operationDate = isAdmin && adminViewMode === 'day' ? syncedAdminOperationDate : ''
   const dailyTimeline = buildFocusedTimeline(
     buildDailyTimeline(bookings, operationDate),
     bookingTime
@@ -192,11 +181,11 @@ export default function BookingsSection({
 
   const visibleBookings = useMemo(() => {
     const base = isAdmin && adminViewMode === 'day'
-      ? bookings.filter((booking) => booking.booking_date === adminOperationDate)
+      ? bookings.filter((booking) => booking.booking_date === syncedAdminOperationDate)
       : bookings
 
     return sortBookingsNewestFirst(base)
-  }, [adminOperationDate, adminViewMode, bookings, isAdmin])
+  }, [adminViewMode, bookings, isAdmin, syncedAdminOperationDate])
 
 
   return (
@@ -260,11 +249,17 @@ export default function BookingsSection({
         clearBookingCommercialContext={clearBookingCommercialContext}
         clearBookingSuccessSummary={clearBookingSuccessSummary}
         bookingMessage={bookingMessage}
+        bookingSuggestedTimes={bookingSuggestedTimes}
+        bookingSuggestedDates={bookingSuggestedDates}
+        editingConflictWarning={editingConflictWarning}
         isBookingSubmitting={isBookingSubmitting}
         availableTimeOptions={availableTimeOptions}
+        minPublicBookingDate={minPublicBookingDate}
         totalBooking={totalBooking}
         createOrUpdateBooking={createOrUpdateBooking}
         cancelEditBooking={cancelEditBooking}
+        onBookingDraftAbandon={onBookingDraftAbandon}
+        onBookingCancel={onBookingCancel}
         BOOKING_OPTIONS={BOOKING_OPTIONS}
         normalizeText={normalizeText}
         normalizePhone={normalizePhone}
@@ -286,7 +281,7 @@ export default function BookingsSection({
             operationDate={operationDate}
             adminViewMode={adminViewMode}
             setAdminViewMode={setAdminViewMode}
-            adminOperationDate={adminOperationDate}
+            adminOperationDate={syncedAdminOperationDate}
             setAdminOperationDate={setAdminOperationDate}
             dailyTimeline={dailyTimeline}
             bookingMessage={bookingMessage}

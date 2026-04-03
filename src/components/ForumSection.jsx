@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../supabaseClient";
 
@@ -62,12 +63,28 @@ function withTimeout(promise, ms = 8000) {
   ]);
 }
 
+function inferCategoryFromContent(content = "") {
+  const text = String(content || "").toLowerCase();
+  if (text.includes("rally")) return "Rally";
+  if (text.includes("f1") || text.includes("fórmula 1") || text.includes("formula 1")) return "F1";
+  if (text.includes("gt")) return "GT";
+  if (text.includes("drift")) return "Drift";
+  if (text.includes("evento") || text.includes("cumpleaños") || text.includes("cumpleanos")) return "Eventos";
+  return "General";
+}
+
+function buildPreviewTitle(content = "") {
+  const clean = String(content || "").trim();
+  if (!clean) return "Sin contenido";
+  return clean.length > 72 ? `${clean.slice(0, 72).trim()}...` : clean;
+}
+
 export default function ForumSection({ isAdmin = false }) {
   const [topics, setTopics] = useState([]);
-  const [postsByTopic, setPostsByTopic] = useState({});
+  const [repliesByPost, setRepliesByPost] = useState({});
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("Todas");
-  const [expandedTopicId, setExpandedTopicId] = useState(null);
+  const [expandedPostId, setExpandedPostId] = useState(null);
   const [submittingTopic, setSubmittingTopic] = useState(false);
   const [submittingReplyFor, setSubmittingReplyFor] = useState(null);
   const [errorText, setErrorText] = useState("");
@@ -77,7 +94,6 @@ export default function ForumSection({ isAdmin = false }) {
     return window.innerWidth <= 768;
   });
   const [topicForm, setTopicForm] = useState({
-    title: "",
     content: "",
     category: "General",
   });
@@ -89,11 +105,9 @@ export default function ForumSection({ isAdmin = false }) {
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
-
     const onResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener("resize", onResize);
     onResize();
-
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
@@ -103,7 +117,10 @@ export default function ForumSection({ isAdmin = false }) {
 
     try {
       const { data, error } = await withTimeout(
-        supabase.from("forum_topics").select("*").order("created_at", { ascending: false })
+        supabase
+          .from("forum_posts")
+          .select("*")
+          .order("created_at", { ascending: false })
       );
 
       if (error) {
@@ -112,7 +129,7 @@ export default function ForumSection({ isAdmin = false }) {
       } else {
         setTopics(Array.isArray(data) ? data : []);
       }
-    } catch (error) {
+    } catch {
       setTopics([]);
       setErrorText("No se pudo cargar el foro. Revisa Supabase o vuelve a intentar.");
     } finally {
@@ -120,103 +137,80 @@ export default function ForumSection({ isAdmin = false }) {
     }
   }
 
-  async function loadPosts(topicId) {
-    if (!topicId || postsByTopic[topicId]) return;
+  async function loadReplies(postId) {
+    if (!postId) return;
 
     try {
       const { data, error } = await withTimeout(
         supabase
-          .from("forum_posts")
+          .from("forum_replies")
           .select("*")
-          .eq("topic_id", topicId)
+          .eq("post_id", postId)
           .order("created_at", { ascending: true })
       );
 
       if (!error) {
-        setPostsByTopic((prev) => ({
+        setRepliesByPost((prev) => ({
           ...prev,
-          [topicId]: Array.isArray(data) ? data : [],
+          [postId]: Array.isArray(data) ? data : [],
         }));
       }
-    } catch (error) {
-      setPostsByTopic((prev) => ({
+    } catch {
+      setRepliesByPost((prev) => ({
         ...prev,
-        [topicId]: [],
+        [postId]: [],
       }));
     }
   }
 
   async function handleCreateTopic(e) {
     e.preventDefault();
-    if (!topicForm.title.trim() || !topicForm.content.trim()) return;
+    const content = topicForm.content.trim();
+    if (!content) return;
 
     setSubmittingTopic(true);
     setErrorText("");
 
     try {
       const { error } = await withTimeout(
-        supabase.from("forum_topics").insert([
+        supabase.from("forum_posts").insert([
           {
-            title: topicForm.title.trim(),
-            content: topicForm.content.trim(),
-            category: topicForm.category || "General",
+            user_name: "Comunidad PSR",
+            content,
           },
         ])
       );
 
       if (error) {
-        setErrorText("No se pudo crear el tema.");
+        setErrorText("No se pudo crear la conversación.");
       } else {
         setTopicForm({
-          title: "",
           content: "",
           category: "General",
         });
         setShowCreateBox(false);
         await loadTopics();
       }
-    } catch (error) {
-      setErrorText("No se pudo crear el tema.");
+    } catch {
+      setErrorText("No se pudo crear la conversación.");
     } finally {
       setSubmittingTopic(false);
     }
   }
 
-  async function handleDeleteTopic(topicId) {
-    const ok = window.confirm("¿Eliminar este tema?");
-    if (!ok) return;
-
-    try {
-      await withTimeout(supabase.from("forum_posts").delete().eq("topic_id", topicId));
-      await withTimeout(supabase.from("forum_topics").delete().eq("id", topicId));
-
-      setPostsByTopic((prev) => {
-        const copy = { ...prev };
-        delete copy[topicId];
-        return copy;
-      });
-
-      if (expandedTopicId === topicId) {
-        setExpandedTopicId(null);
-      }
-
-      await loadTopics();
-    } catch (error) {
-      setErrorText("No se pudo eliminar el tema.");
-    }
-  }
-
-  async function handleCreateReply(topicId) {
-    const content = (replyDrafts[topicId] || "").trim();
+  async function handleCreateReply(postId) {
+    const content = (replyDrafts[postId] || "").trim();
     if (!content) return;
 
-    setSubmittingReplyFor(topicId);
+    setSubmittingReplyFor(postId);
+    setErrorText("");
 
     try {
       const { error } = await withTimeout(
-        supabase.from("forum_posts").insert([
+        supabase.from("forum_replies").insert([
           {
-            topic_id: topicId,
+            post_id: postId,
+            user_name: "Comunidad PSR",
             content,
           },
         ])
@@ -225,63 +219,73 @@ export default function ForumSection({ isAdmin = false }) {
       if (!error) {
         setReplyDrafts((prev) => ({
           ...prev,
-          [topicId]: "",
+          [postId]: "",
         }));
-
-        const { data } = await withTimeout(
-          supabase
-            .from("forum_posts")
-            .select("*")
-            .eq("topic_id", topicId)
-            .order("created_at", { ascending: true })
-        );
-
-        setPostsByTopic((prev) => ({
-          ...prev,
-          [topicId]: Array.isArray(data) ? data : [],
-        }));
-
-        await loadTopics();
+        await loadReplies(postId);
+      } else {
+        setErrorText("No se pudo publicar la respuesta.");
       }
-    } catch (error) {
+    } catch {
       setErrorText("No se pudo publicar la respuesta.");
     } finally {
       setSubmittingReplyFor(null);
     }
   }
 
-  async function handleDeleteReply(topicId, replyId) {
+  async function handleDeleteTopic(postId) {
+    const ok = window.confirm("¿Eliminar esta conversación?");
+    if (!ok) return;
+
+    try {
+      await withTimeout(supabase.from("forum_replies").delete().eq("post_id", postId));
+      await withTimeout(supabase.from("forum_posts").delete().eq("id", postId));
+
+      setRepliesByPost((prev) => {
+        const copy = { ...prev };
+        delete copy[postId];
+        return copy;
+      });
+
+      if (expandedPostId === postId) {
+        setExpandedPostId(null);
+      }
+
+      await loadTopics();
+    } catch {
+      setErrorText("No se pudo eliminar la conversación.");
+    }
+  }
+
+  async function handleDeleteReply(postId, replyId) {
     const ok = window.confirm("¿Eliminar este comentario?");
     if (!ok) return;
 
     try {
-      await withTimeout(supabase.from("forum_posts").delete().eq("id", replyId));
-
-      setPostsByTopic((prev) => ({
+      await withTimeout(supabase.from("forum_replies").delete().eq("id", replyId));
+      setRepliesByPost((prev) => ({
         ...prev,
-        [topicId]: (prev[topicId] || []).filter((item) => item.id !== replyId),
+        [postId]: (prev[postId] || []).filter((item) => item.id !== replyId),
       }));
-    } catch (error) {
+    } catch {
       setErrorText("No se pudo eliminar el comentario.");
     }
   }
 
-  async function toggleTopic(topicId) {
-    const nextId = expandedTopicId === topicId ? null : topicId;
-    setExpandedTopicId(nextId);
+  async function toggleTopic(postId) {
+    const nextId = expandedPostId === postId ? null : postId;
+    setExpandedPostId(nextId);
     if (nextId) {
-      await loadPosts(topicId);
+      await loadReplies(postId);
     }
   }
 
   const filteredTopics = useMemo(() => {
     if (selectedCategory === "Todas") return topics;
-    return topics.filter((topic) => topic.category === selectedCategory);
+    return topics.filter((topic) => inferCategoryFromContent(topic?.content) === selectedCategory);
   }, [topics, selectedCategory]);
 
   const heroTitleSize = isMobile ? 28 : 38;
   const statGridColumns = isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(auto-fit, minmax(180px, 1fr))";
-  const openTopicPosts = postsByTopic[expandedTopicId] || [];
 
   return (
     <section style={styles.wrap}>
@@ -416,18 +420,6 @@ export default function ForumSection({ isAdmin = false }) {
                 margin: "0 auto",
               }}
             >
-              <input
-                style={styles.input}
-                placeholder="Título"
-                value={topicForm.title}
-                onChange={(e) =>
-                  setTopicForm((prev) => ({
-                    ...prev,
-                    title: e.target.value,
-                  }))
-                }
-              />
-
               <select
                 style={styles.input}
                 value={topicForm.category}
@@ -528,8 +520,6 @@ export default function ForumSection({ isAdmin = false }) {
             gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))",
             gap: 10,
             justifyContent: "stretch",
-            overflowX: "visible",
-            paddingBottom: 0,
           }}
         >
           {["Todas", ...CATEGORIES].map((item) => {
@@ -564,8 +554,10 @@ export default function ForumSection({ isAdmin = false }) {
         <div style={styles.card}>No hay conversaciones todavía</div>
       ) : (
         filteredTopics.map((topic) => {
-          const isOpen = expandedTopicId === topic.id;
-          const posts = postsByTopic[topic.id] || [];
+          const isOpen = expandedPostId === topic.id;
+          const replies = repliesByPost[topic.id] || [];
+          const previewTitle = buildPreviewTitle(topic.content);
+          const category = topicForm.category || inferCategoryFromContent(topic.content);
 
           return (
             <div key={topic.id} style={{ ...styles.card, textAlign: "left", padding: isMobile ? 14 : 18 }}>
@@ -599,10 +591,10 @@ export default function ForumSection({ isAdmin = false }) {
                         fontWeight: 700,
                       }}
                     >
-                      {topic.category || "General"}
+                      {category}
                     </div>
                     <div style={{ fontSize: 12, opacity: 0.62, fontWeight: 700 }}>
-                      {(isOpen ? posts.length : postsByTopic[topic.id]?.length || 0)} respuesta{(isOpen ? posts.length : postsByTopic[topic.id]?.length || 0) === 1 ? "" : "s"}
+                      {replies.length} respuesta{replies.length === 1 ? "" : "s"}
                     </div>
                   </div>
 
@@ -614,9 +606,11 @@ export default function ForumSection({ isAdmin = false }) {
                       overflowWrap: "anywhere",
                     }}
                   >
-                    {topic.title}
+                    {previewTitle}
                   </h3>
-                  <p style={{ margin: 0, opacity: 0.82, lineHeight: 1.5, overflowWrap: "anywhere" }}>{topic.content}</p>
+                  <p style={{ margin: 0, opacity: 0.82, lineHeight: 1.5, overflowWrap: "anywhere", whiteSpace: "pre-wrap" }}>
+                    {topic.content}
+                  </p>
 
                   <div
                     style={{
@@ -629,7 +623,7 @@ export default function ForumSection({ isAdmin = false }) {
                   >
                     <span style={{ opacity: 0.65, fontSize: 12 }}>{formatDate(topic.created_at)}</span>
                     {!isMobile && <span style={{ opacity: 0.28 }}>•</span>}
-                    {!isMobile && <span style={{ opacity: 0.65, fontSize: 12 }}>Tema abierto para la comunidad</span>}
+                    {!isMobile && <span style={{ opacity: 0.65, fontSize: 12 }}>{topic.user_name || "Comunidad PSR"}</span>}
                   </div>
                 </div>
 
@@ -693,11 +687,11 @@ export default function ForumSection({ isAdmin = false }) {
                   >
                     <h4 style={{ margin: 0 }}>Conversación</h4>
                     <div style={{ opacity: 0.65, fontSize: 12 }}>
-                      {openTopicPosts.length} comentario{openTopicPosts.length === 1 ? "" : "s"}
+                      {replies.length} comentario{replies.length === 1 ? "" : "s"}
                     </div>
                   </div>
 
-                  {posts.length === 0 ? (
+                  {replies.length === 0 ? (
                     <div
                       style={{
                         textAlign: isMobile ? "left" : "center",
@@ -713,9 +707,9 @@ export default function ForumSection({ isAdmin = false }) {
                     </div>
                   ) : (
                     <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
-                      {posts.map((post, index) => (
+                      {replies.map((reply, index) => (
                         <div
-                          key={post.id}
+                          key={reply.id}
                           style={{
                             background: index % 2 === 0 ? "#0b1328" : "rgba(11,19,40,0.8)",
                             border: "1px solid rgba(255,255,255,0.08)",
@@ -724,7 +718,7 @@ export default function ForumSection({ isAdmin = false }) {
                           }}
                         >
                           <div style={{ whiteSpace: "pre-wrap", marginBottom: 10, lineHeight: 1.5, overflowWrap: "anywhere" }}>
-                            {post.content}
+                            {reply.content}
                           </div>
                           <div
                             style={{
@@ -736,12 +730,12 @@ export default function ForumSection({ isAdmin = false }) {
                             }}
                           >
                             <span style={{ opacity: 0.65, fontSize: 12 }}>
-                              {formatDate(post.created_at)}
+                              {formatDate(reply.created_at)} · {reply.user_name || "Comunidad PSR"}
                             </span>
 
                             {isAdmin && (
                               <button
-                                onClick={() => handleDeleteReply(topic.id, post.id)}
+                                onClick={() => handleDeleteReply(topic.id, reply.id)}
                                 style={{
                                   ...styles.button,
                                   background: "#7f1d1d",

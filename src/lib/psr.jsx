@@ -1,32 +1,8 @@
+/* eslint-disable react-refresh/only-export-components */
 import React from 'react'
+import * as bookingEngine from '../utils/bookingEngine.js'
 
-export const BOOKING_OPTIONS = {
-  '1_ESTANDAR': {
-    label: '1 ESTÁNDAR',
-    simulators: 1,
-    pricingModel: ['ESTANDAR'],
-  },
-  '1_PRO': {
-    label: '1 PRO',
-    simulators: 1,
-    pricingModel: ['PRO'],
-  },
-  '2_ESTANDAR': {
-    label: '2 ESTÁNDAR',
-    simulators: 2,
-    pricingModel: ['ESTANDAR', 'ESTANDAR'],
-  },
-  '1_ESTANDAR_1_PRO': {
-    label: '1 ESTÁNDAR + 1 PRO',
-    simulators: 2,
-    pricingModel: ['ESTANDAR', 'PRO'],
-  },
-  '3_SIMULADORES': {
-    label: '3 SIMULADORES',
-    simulators: 3,
-    pricingModel: ['ESTANDAR', 'ESTANDAR', 'PRO'],
-  },
-}
+export const BOOKING_OPTIONS = bookingEngine.BOOKING_OPTIONS
 
 export const GAME_ORDER = [
   'EA WRC',
@@ -139,51 +115,22 @@ export function calculateSingleSimulatorPrice(type, minutes) {
 }
 
 export function calculateBookingTotal(configKey, duration) {
-  const config = BOOKING_OPTIONS[configKey]
-  if (!config) return 0
-
-  const total = config.pricingModel.reduce((sum, simulatorType) => {
-    return sum + calculateSingleSimulatorPrice(simulatorType, duration)
-  }, 0)
-
-  return Math.round(total)
+  return bookingEngine.calculateBookingTotal(configKey, duration)
 }
 
 export function getBookingAvailability(bookings, bookingDate, bookingConfig, bookingDuration, editingBookingId = null) {
-  if (!bookingDate) {
-    return {
-      unavailableTimes: [],
-      availableTimeOptions: TIME_OPTIONS,
-      suggestedTimes: [],
-    }
-  }
-
-  const selectedConfig = BOOKING_OPTIONS[bookingConfig]
-  const neededSims = selectedConfig?.simulators || 1
-  const durationMinutes = getDurationMinutes(bookingDuration)
-
-  const unavailableTimes = TIME_OPTIONS.filter((slot) => {
-    const slotStart = timeToMinutes(slot)
-    const slotEnd = slotStart + durationMinutes
-
-    let reservedSims = 0
-
-    bookings.forEach((booking) => {
-      if (editingBookingId && booking.id === editingBookingId) return
-      if (booking.booking_date !== bookingDate) return
-
-      const existingStart = timeToMinutes(String(booking.booking_time).slice(0, 5))
-      const existingEnd = existingStart + getDurationMinutes(booking.duration)
-      const overlap = slotStart < existingEnd && slotEnd > existingStart
-
-      if (overlap) reservedSims += Number(booking.simulators || 0)
-    })
-
-    return reservedSims + neededSims > 3
+  const availableTimeOptions = bookingEngine.getVisibleBookingTimeOptions({
+    timeOptions: TIME_OPTIONS,
+    bookings,
+    bookingDate,
+    bookingConfig,
+    bookingDuration,
+    editingBookingId,
+    isAdmin: true,
   })
 
-  const availableTimeOptions = TIME_OPTIONS.filter((slot) => !unavailableTimes.includes(slot))
-  const suggestedTimes = availableTimeOptions.slice(0, 4)
+  const unavailableTimes = TIME_OPTIONS.filter((slot) => !availableTimeOptions.includes(slot))
+  const suggestedTimes = bookingEngine.getNearestBookingTimeSuggestions(availableTimeOptions, '', 4)
 
   return { unavailableTimes, availableTimeOptions, suggestedTimes }
 }

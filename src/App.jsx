@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from './db.js'
 import {
   buildTimeOptions,
@@ -23,20 +23,17 @@ import LapTimeEditorSection from './components/LapTimeEditorSection'
 import PilotProfileSection from './components/PilotProfileSection'
 import CommercialSection from './components/CommercialSection'
 import ForumSection from './components/ForumSection'
+import BookingInsightsSection from './components/BookingInsightsSection'
 import MainTabsNav from './components/MainTabsNav'
-import { buildBookingFollowupWhatsappLink } from './utils/whatsappHelper'
+import { buildBookingFollowupWhatsappLink, buildBusinessEmailLink } from './utils/whatsappHelper'
+import { createBookingRecord, deleteBookingRecord, saveBookingAttempt, updateBookingRecord } from './utils/bookingPersistence.js'
+import { getAdminAuthErrorMessage, getAdminEmailFromSession, resolveAdminAccess, signInAdmin, signOutAdmin } from './utils/adminAuth.js'
 import {
   page,
   container,
   hero,
   title,
   subtitle,
-  modeWrap,
-  modeButton,
-  modeButtonActive,
-  tabs,
-  tab,
-  tabActive,
   card,
   sectionTitle,
   line,
@@ -56,102 +53,76 @@ import {
   td,
 } from './styles/appStyles'
 
-const BOOKING_OPTIONS = {
-  '1_ESTANDAR': {
-    label: '1 ESTÁNDAR',
-    simulators: 1,
-    pricingModel: ['ESTANDAR'],
-  },
-  '1_PRO': {
-    label: '1 PRO',
-    simulators: 1,
-    pricingModel: ['PRO'],
-  },
-  '2_ESTANDAR': {
-    label: '2 ESTÁNDAR',
-    simulators: 2,
-    pricingModel: ['ESTANDAR', 'ESTANDAR'],
-  },
-  '1_ESTANDAR_1_PRO': {
-    label: '1 ESTÁNDAR + 1 PRO',
-    simulators: 2,
-    pricingModel: ['ESTANDAR', 'PRO'],
-  },
-  '3_SIMULADORES': {
-    label: '3 SIMULADORES',
-    simulators: 3,
-    pricingModel: ['ESTANDAR', 'ESTANDAR', 'PRO'],
-  },
-}
-
 const TIME_OPTIONS = buildTimeOptions('10:30', '20:00', 30)
 
 
+const BOOKING_OPTIONS = bookingEngine.BOOKING_OPTIONS
 const getBookingOptionKeyFromBooking = bookingEngine.getBookingOptionKeyFromBooking
 
-const normalizeBookingDraft = bookingEngine.normalizeBookingDraft
+const validateFinalBooking = bookingEngine.validateFinalBooking
+const buildBookingMutationPayload = bookingEngine.buildBookingMutationPayload
+const calculateBookingTotal = bookingEngine.calculateBookingTotal
+const getTodayDateString = bookingEngine.getTodayDateString
+const getVisibleBookingTimeOptions = bookingEngine.getVisibleBookingTimeOptions
+const getNearestBookingTimeSuggestions = bookingEngine.getNearestBookingTimeSuggestions
+const getNearestBookingDateSuggestions = bookingEngine.getNearestBookingDateSuggestions
+const isTimeSlotAvailable = bookingEngine.isTimeSlotAvailable
+const buildBookingEditSnapshot = bookingEngine.buildBookingEditSnapshot
+const isSameBookingEditSnapshot = bookingEngine.isSameBookingEditSnapshot
+const applyBookingSnapshotFilters = bookingEngine.applyBookingSnapshotFilters
+const getCommercialBookingPrefill = bookingEngine.getCommercialBookingPrefill
 
-const validateBookingPayload = bookingEngine.validateBookingPayload
+const isBookingDbCapacityError = bookingEngine.isBookingDbCapacityError
+const getBookingDbCapacityMessage = bookingEngine.getBookingDbCapacityMessage
 
-const getConflicts = bookingEngine.getConflicts
+function getFriendlyBookingValidationMessage(message = '') {
+  const normalized = String(message || '').trim()
+  if (!normalized) return 'No se pudo validar la reserva.'
 
-const ADMIN_ACCESS_KEY = import.meta.env.VITE_ADMIN_ACCESS_KEY || 'PSR109PV'
-
-function calculateSingleSimulatorPrice(type, minutes) {
-  const m = Number(minutes)
-
-  const rates = {
-    ESTANDAR: {
-      base15: 9000,
-      base30: 16000,
-      hour: 28000,
-    },
-    PRO: {
-      base15: 10000,
-      base30: 18000,
-      hour: 32000,
-    },
+  const replacements = {
+    'Debes ingresar el nombre del cliente.': 'Falta el nombre del cliente.',
+    'Debes ingresar teléfono o WhatsApp.': 'Falta el WhatsApp o teléfono.',
+    'Debes seleccionar una fecha.': 'Falta seleccionar la fecha.',
+    'Debes seleccionar una hora.': 'Falta seleccionar la hora.',
+    'No puedes crear reservas en una fecha pasada.': 'No puedes reservar una fecha pasada.',
+    'No puedes reservar un horario que ya pasó.': 'Ese horario ya pasó. Elige otro.',
+    'La hora seleccionada no es válida.': 'La hora seleccionada no es válida.',
+    'La duración mínima es 15 minutos.': 'La duración mínima es 15 minutos.',
+    'La duración debe avanzar en bloques de 15 minutos.': 'La duración debe ser en bloques de 15 minutos.',
+    'La configuración de simuladores no es válida.': 'La configuración de simuladores no es válida.',
+    'No puedes reservar más de 2 simuladores estándar.': 'No puedes reservar más de 2 simuladores estándar.',
+    'No puedes reservar más de 1 simulador pro.': 'No puedes reservar más de 1 simulador pro.',
+    'La cantidad total de simuladores no coincide con la configuración elegida.': 'La configuración elegida no coincide con la cantidad de simuladores.',
+    'El tipo de reserva no coincide con la configuración elegida.': 'El tipo de configuración no coincide con la selección actual.',
+    'La configuración de simuladores no coincide con la selección actual.': 'La configuración elegida no coincide con la selección actual.',
+    'El total calculado no es válido.': 'No se pudo calcular el total de la reserva.',
+    'El total no coincide con la configuración y duración elegidas.': 'El total no coincide con la configuración elegida.',
+    'La reserva no puede comenzar antes de las 10:30.': 'La reserva debe comenzar desde las 10:30.',
+    'La reserva no puede terminar después de las 20:00.': 'La reserva debe terminar antes de las 20:00.',
+    'Ese horario genera conflicto con otra reserva para los simuladores elegidos.': 'Ese horario ya no está disponible para esa configuración.',
   }
 
-  const cfg = rates[type]
-  if (!cfg || m < 15) return 0
-
-  const minuteRate = cfg.hour / 60
-
-  if (m === 15) return cfg.base15
-  if (m === 30) return cfg.base30
-  if (m === 60) return cfg.hour
-  if (m >= 16 && m <= 29) return cfg.base15 + minuteRate * (m - 15)
-  if (m >= 31 && m <= 59) return cfg.base30 + minuteRate * (m - 30)
-  if (m > 60) return minuteRate * m
-
-  return 0
+  return replacements[normalized] || normalized
 }
 
-function calculateBookingTotal(configKey, duration) {
-  const config = BOOKING_OPTIONS[configKey]
-  if (!config) return 0
+function getFriendlyBookingMutationMessage(error, fallbackMessage = 'No se pudo guardar la reserva.') {
+  if (isBookingDbCapacityError(error)) return getBookingDbCapacityMessage(error)
 
-  const total = config.pricingModel.reduce((sum, simulatorType) => {
-    return sum + calculateSingleSimulatorPrice(simulatorType, duration)
-  }, 0)
+  const raw = String(error?.message || error?.details || fallbackMessage || '').toLowerCase()
 
-  return Math.round(total)
-}
+  if (raw.includes('network') || raw.includes('fetch')) {
+    return 'No se pudo conectar con Supabase. Revisa internet e inténtalo otra vez.'
+  }
 
-function isTimeSlotAvailable(bookings, bookingDate, bookingConfig, bookingDuration, slot, editingBookingId = null) {
-  if (!bookingDate || !slot) return true
+  if (raw.includes('duplicate') || raw.includes('unique')) {
+    return 'Ya existe una reserva igual o muy similar. Revisa antes de guardar otra vez.'
+  }
 
-  return getConflicts(
-    {
-      booking_date: bookingDate,
-      booking_time: slot,
-      duration: Number(bookingDuration),
-      simulator_config_id: bookingConfig,
-    },
-    bookings,
-    editingBookingId
-  ).length === 0
+  if (raw.includes('not-null') || raw.includes('violates not-null constraint')) {
+    return 'Falta un dato obligatorio para guardar la reserva.'
+  }
+
+  return fallbackMessage
 }
 
 function buildChallengeLeaderboard(entries) {
@@ -186,8 +157,11 @@ export default function App() {
   const [appMode, setAppMode] = useState('USER')
   const [viewMode, setViewMode] = useState('BOOKINGS')
   const [isMoreOpen, setIsMoreOpen] = useState(false)
-  const [adminKeyInput, setAdminKeyInput] = useState('')
+  const [adminEmailInput, setAdminEmailInput] = useState('')
+  const [adminPasswordInput, setAdminPasswordInput] = useState('')
   const [adminAccessError, setAdminAccessError] = useState('')
+  const [isAdminAuthLoading, setIsAdminAuthLoading] = useState(false)
+  const [adminSessionEmail, setAdminSessionEmail] = useState('')
   const isAdmin = appMode === 'ADMIN'
 
   const [lapTimes, setLapTimes] = useState([])
@@ -233,6 +207,7 @@ export default function App() {
   const [bookingSuccessSummary, setBookingSuccessSummary] = useState(null)
   const [bookingCommercialContext, setBookingCommercialContext] = useState(null)
   const [editingBookingId, setEditingBookingId] = useState(null)
+  const [editingBookingSnapshot, setEditingBookingSnapshot] = useState(null)
   const [isBookingSubmitting, setIsBookingSubmitting] = useState(false)
 
   const [lapEditId, setLapEditId] = useState(null)
@@ -244,8 +219,78 @@ export default function App() {
   const [lapEditTime, setLapEditTime] = useState('')
   const [lapEditMessage, setLapEditMessage] = useState('')
 
+  const loadAllRef = useRef(null)
+  const loadWeeklyChallengeRef = useRef(null)
+  const loadMonthlyChallengeRef = useRef(null)
+  const cancelEditBookingRef = useRef(null)
+  const applyCommercialPrefillRef = useRef(null)
+  const adminAuthSyncIdRef = useRef(0)
+
+  loadAllRef.current = loadAll
+  loadWeeklyChallengeRef.current = loadWeeklyChallenge
+  loadMonthlyChallengeRef.current = loadMonthlyChallenge
+  cancelEditBookingRef.current = cancelEditBooking
+  applyCommercialPrefillRef.current = applyCommercialPrefill
+
   useEffect(() => {
-    loadAll()
+    loadAllRef.current?.()
+  }, [])
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function syncAdminSession(session) {
+      const syncId = adminAuthSyncIdRef.current + 1
+      adminAuthSyncIdRef.current = syncId
+
+      if (!isMounted) return
+
+      setAdminSessionEmail(getAdminEmailFromSession(session))
+
+      if (!session) {
+        setAppMode('USER')
+        setAdminAccessError('')
+        return
+      }
+
+      const adminAccess = await resolveAdminAccess(supabase, session)
+      if (!isMounted || syncId !== adminAuthSyncIdRef.current) return
+
+      setAdminSessionEmail(adminAccess.email || '')
+      setAppMode(adminAccess.isAdmin ? 'ADMIN' : 'USER')
+
+      if (adminAccess.error) {
+        setAdminAccessError('No se pudo validar el acceso admin con Supabase Auth.')
+        return
+      }
+
+      setAdminAccessError('')
+    }
+
+    async function bootstrapAdminSession() {
+      const { data, error } = await supabase.auth.getSession()
+      if (!isMounted) return
+
+      if (error) {
+        setAppMode('USER')
+        setAdminSessionEmail('')
+        setAdminAccessError('')
+        return
+      }
+
+      await syncAdminSession(data?.session ?? null)
+    }
+
+    bootstrapAdminSession()
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      void syncAdminSession(session)
+    })
+
+    return () => {
+      isMounted = false
+      authListener?.subscription?.unsubscribe?.()
+    }
   }, [])
 
   useEffect(() => {
@@ -254,8 +299,8 @@ export default function App() {
 
   useEffect(() => {
     const interval = window.setInterval(() => {
-      loadWeeklyChallenge()
-      loadMonthlyChallenge()
+      loadWeeklyChallengeRef.current?.()
+      loadMonthlyChallengeRef.current?.()
     }, 30000)
 
     return () => window.clearInterval(interval)
@@ -265,7 +310,7 @@ export default function App() {
     if (isAdmin) return
 
     cancelEditLapTime()
-    cancelEditBooking()
+    cancelEditBookingRef.current?.()
     cancelEditWeeklyEntry()
     cancelEditMonthlyEntry()
   }, [isAdmin])
@@ -333,11 +378,18 @@ export default function App() {
   }
 
   async function loadChallengeEntries(type, challengeId, setter) {
+    const numericChallengeId = Number(challengeId)
+
+    if (!type || !Number.isFinite(numericChallengeId) || numericChallengeId <= 0) {
+      setter([])
+      return
+    }
+
     const { data, error } = await supabase
       .from('challenge_entries')
       .select('*')
       .eq('challenge_type', type)
-      .eq('challenge_id', challengeId)
+      .eq('challenge_id', numericChallengeId)
       .order('time_ms', { ascending: true })
 
     if (error) {
@@ -533,19 +585,80 @@ export default function App() {
       })
   }, [normalizedLapTimes, generalGame, generalTrack, generalSearch])
 
-  const availableTimeOptions = useMemo(() => {
-    if (!bookingDate) return TIME_OPTIONS
+  const minPublicBookingDate = useMemo(() => getTodayDateString(), [])
 
-    return TIME_OPTIONS.filter((slot) =>
-      isTimeSlotAvailable(bookings, bookingDate, bookingConfig, bookingDuration, slot, editingBookingId)
+  const editingMatchesSnapshot = useMemo(() => {
+    if (!editingBookingId || !editingBookingSnapshot) return false
+
+    return (
+      String(editingBookingSnapshot.id) === String(editingBookingId)
+      && String(editingBookingSnapshot.booking_date || '') === String(bookingDate || '')
+      && String(editingBookingSnapshot.booking_time || '') === String(bookingTime || '')
+      && String(editingBookingSnapshot.bookingConfig || '') === String(bookingConfig || '')
+      && Number(editingBookingSnapshot.bookingDuration || 0) === Number(bookingDuration || 0)
     )
-  }, [bookings, bookingDate, bookingConfig, bookingDuration, editingBookingId])
+  }, [editingBookingId, editingBookingSnapshot, bookingDate, bookingTime, bookingConfig, bookingDuration])
+
+  const availableTimeOptions = useMemo(() => {
+    return getVisibleBookingTimeOptions({
+      timeOptions: TIME_OPTIONS,
+      bookings,
+      bookingDate,
+      bookingConfig,
+      bookingDuration,
+      editingBookingId,
+      isAdmin,
+      preserveSlot: isAdmin && editingMatchesSnapshot ? bookingTime : '',
+    })
+  }, [bookings, bookingDate, bookingConfig, bookingDuration, editingBookingId, isAdmin, editingMatchesSnapshot, bookingTime])
+
+  const editingCurrentSelectionAvailable = useMemo(() => {
+    if (!editingBookingId || !bookingDate || !bookingTime) return true
+
+    return isTimeSlotAvailable({
+      booking_date: bookingDate,
+      booking_time: bookingTime,
+      duration: Number(bookingDuration),
+      simulator_config_id: bookingConfig,
+    }, bookings, editingBookingId)
+  }, [bookings, bookingDate, bookingTime, bookingConfig, bookingDuration, editingBookingId])
+
+  const editingConflictWarning = useMemo(() => {
+    if (!editingBookingId || !editingMatchesSnapshot) return ''
+    if (editingCurrentSelectionAvailable) return ''
+
+    return 'Esta reserva original ya quedó en conflicto. Elige otro horario antes de guardar.'
+  }, [editingBookingId, editingMatchesSnapshot, editingCurrentSelectionAvailable])
+
+  const bookingSuggestedTimes = useMemo(() => {
+    if (!bookingDate) return []
+
+    return getNearestBookingTimeSuggestions(availableTimeOptions, bookingTime, 3)
+  }, [availableTimeOptions, bookingDate, bookingTime])
+
+  const bookingSuggestedDates = useMemo(() => {
+    if (!bookingDate || availableTimeOptions.length > 0) return []
+
+    return getNearestBookingDateSuggestions({
+      timeOptions: TIME_OPTIONS,
+      bookings,
+      bookingDate,
+      bookingConfig,
+      bookingDuration,
+      editingBookingId,
+      isAdmin,
+      maxDays: 14,
+      maxSuggestions: 4,
+    })
+  }, [availableTimeOptions, bookingConfig, bookingDate, bookingDuration, bookings, editingBookingId, isAdmin])
 
   useEffect(() => {
+    if (editingMatchesSnapshot && editingBookingId && bookingTime) return
+
     if (!availableTimeOptions.includes(bookingTime)) {
       setBookingTime(availableTimeOptions[0] || '')
     }
-  }, [availableTimeOptions, bookingTime])
+  }, [availableTimeOptions, bookingTime, editingMatchesSnapshot, editingBookingId])
 
 
   async function submitChallengeTime(type) {
@@ -1086,12 +1199,22 @@ export default function App() {
     await loadLapTimes()
   }
 
-  function startEditBooking(booking) {
-    if (!isAdmin) return
 
+  function syncBookingsForDate(dateValue, rows = []) {
+    const targetDate = String(dateValue || '')
+    if (!targetDate) return
+
+    setBookings((current) => {
+      const withoutDate = current.filter((item) => String(item?.booking_date || '') !== targetDate)
+      return [...withoutDate, ...(rows || [])]
+    })
+  }
+
+  function applyBookingToForm(booking) {
     const configKey = getBookingOptionKeyFromBooking(booking)
 
     setEditingBookingId(booking.id)
+    setEditingBookingSnapshot(buildBookingEditSnapshot(booking))
     setBookingClient(normalizeText(booking.client))
     setBookingPhone(normalizePhone(booking.phone))
     setBookingDate(booking.booking_date)
@@ -1102,8 +1225,65 @@ export default function App() {
     setBookingWhatsappReminder(Boolean(booking.whatsapp_reminder))
     clearBookingSuccessSummary()
     clearBookingCommercialContext()
-    setBookingMessage('Editando reserva')
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  async function startEditBooking(booking) {
+    if (!isAdmin) return
+    if (!booking?.id || isBookingSubmitting) return
+
+    setIsBookingSubmitting(true)
+    setBookingMessage('Validando reserva para edición...')
+
+    try {
+      const { data: latestBooking, error } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('id', booking.id)
+        .maybeSingle()
+
+      if (error) {
+        console.log('start edit booking error:', error)
+        setBookingMessage('No se pudo abrir la reserva para edición.')
+        return
+      }
+
+      if (!latestBooking) {
+        if (editingBookingId === booking.id) cancelEditBooking()
+        clearBookingSuccessSummary()
+        clearBookingCommercialContext()
+        await loadBookings()
+        setBookingMessage('La reserva ya no existe o fue eliminada.')
+        return
+      }
+
+      const liveBookings = await loadBookingsByDate(latestBooking.booking_date)
+      if (liveBookings !== null) {
+        syncBookingsForDate(latestBooking.booking_date, liveBookings)
+      }
+
+      applyBookingToForm(latestBooking)
+
+      if (liveBookings === null) {
+        setBookingMessage('Reserva cargada, pero no se pudo validar en tiempo real.')
+        return
+      }
+
+      const liveValidation = validateFinalBooking(latestBooking, liveBookings, latestBooking.id, { allowPast: true })
+
+      if (!liveValidation.valid) {
+        setBookingMessage(
+          liveValidation.conflicts.length > 0
+            ? 'Esta reserva quedó en conflicto con otra. Corrígela antes de guardar.'
+            : getFriendlyBookingValidationMessage(liveValidation.errors[0] || 'Reserva cargada con observaciones. Revísala antes de guardar.')
+        )
+        return
+      }
+
+      setBookingMessage('Editando reserva')
+    } finally {
+      setIsBookingSubmitting(false)
+    }
   }
 
   function clearBookingSuccessSummary() {
@@ -1116,6 +1296,7 @@ export default function App() {
 
   function resetBookingForm() {
     setEditingBookingId(null)
+    setEditingBookingSnapshot(null)
     setBookingClient('')
     setBookingPhone('')
     setBookingDate('')
@@ -1137,67 +1318,107 @@ export default function App() {
     if (!isAdmin && editingBookingId) return
     if (isBookingSubmitting) return
 
-    setBookingMessage('')
+    const currentAttemptBase = {
+      booking_date: bookingDate,
+      booking_time: bookingTime,
+      reservation_kind: bookingKind,
+      simulator_config_id: bookingConfig,
+      duration: Number(bookingDuration),
+      total: Number(totalBooking || 0),
+      source: editingBookingId ? 'admin_update' : (isAdmin ? 'admin_create' : 'public_create'),
+    }
+
+    setBookingMessage(editingBookingId ? 'Guardando cambios...' : 'Guardando reserva...')
     setIsBookingSubmitting(true)
 
     try {
-      const selectedConfig = BOOKING_OPTIONS[bookingConfig]
-      const total = calculateBookingTotal(bookingConfig, bookingDuration)
-
-      const draftPayload = normalizeBookingDraft({
+      const draftPayload = buildBookingMutationPayload({
         client: normalizeText(bookingClient),
         phone: normalizePhone(bookingPhone),
         whatsapp_reminder: bookingWhatsappReminder,
         booking_date: bookingDate,
         booking_time: bookingTime,
         reservation_kind: bookingKind,
-        simulators: Number(selectedConfig?.simulators || 0),
-        booking_type: selectedConfig?.label || '',
         duration: Number(bookingDuration),
-        total,
         simulator_config_id: bookingConfig,
       })
+      const selectedConfig = BOOKING_OPTIONS[draftPayload.simulator_config_id] || BOOKING_OPTIONS[bookingConfig]
 
-      const localValidation = validateBookingPayload(draftPayload, bookings, editingBookingId)
+      const localValidation = validateFinalBooking(draftPayload, bookings, editingBookingId, { allowPast: isAdmin })
 
       if (!localValidation.valid) {
         if (localValidation.conflicts.length > 0) {
-          setBookingMessage('Horario no disponible')
+          await saveBookingAttempt({
+            supabase,
+            ...currentAttemptBase,
+            ...draftPayload,
+            attempt_status: 'failed',
+            reason: 'local_conflict',
+            metadata: { scope: 'local', conflicts: localValidation.conflicts.length },
+          })
+          setBookingMessage('Ese horario ya no está disponible para la configuración elegida.')
           return
         }
 
         if (
-          !draftPayload.client ||
-          !draftPayload.phone ||
-          !draftPayload.booking_date ||
-          !draftPayload.booking_time
+          !draftPayload.client
+          || !draftPayload.phone
+          || !draftPayload.booking_date
+          || !draftPayload.booking_time
         ) {
-          setBookingMessage('Faltan datos')
+          await saveBookingAttempt({
+            supabase,
+            ...currentAttemptBase,
+            ...draftPayload,
+            attempt_status: 'failed',
+            reason: 'incomplete_required_fields',
+          })
+          setBookingMessage('Completa nombre, WhatsApp, fecha y hora antes de reservar.')
           return
         }
 
-        setBookingMessage(localValidation.errors[0] || 'No se pudo validar la reserva')
+        await saveBookingAttempt({
+          supabase,
+          ...currentAttemptBase,
+          ...draftPayload,
+          attempt_status: 'failed',
+          reason: 'validation_error',
+          metadata: { first_error: localValidation.errors[0] || '' },
+        })
+        setBookingMessage(getFriendlyBookingValidationMessage(localValidation.errors[0]))
         return
       }
 
       const freshBookings = await loadBookingsByDate(draftPayload.booking_date)
 
       if (freshBookings === null) {
+        await saveBookingAttempt({
+          supabase,
+          ...currentAttemptBase,
+          ...draftPayload,
+          attempt_status: 'failed',
+          reason: 'live_validation_unavailable',
+        })
         setBookingMessage('No se pudo validar la disponibilidad en tiempo real')
         return
       }
 
-      const liveValidation = validateBookingPayload(draftPayload, freshBookings, editingBookingId)
+      const liveValidation = validateFinalBooking(draftPayload, freshBookings, editingBookingId, { allowPast: isAdmin })
 
       if (!liveValidation.valid) {
-        setBookings((current) => {
-          const withoutDate = current.filter((item) => item.booking_date !== draftPayload.booking_date)
-          return [...withoutDate, ...freshBookings]
+        syncBookingsForDate(draftPayload.booking_date, freshBookings)
+        await saveBookingAttempt({
+          supabase,
+          ...currentAttemptBase,
+          ...draftPayload,
+          attempt_status: 'failed',
+          reason: liveValidation.conflicts.length > 0 ? 'live_conflict' : 'live_validation_error',
+          metadata: { first_error: liveValidation.errors[0] || '', conflicts: liveValidation.conflicts.length },
         })
         setBookingMessage(
           liveValidation.conflicts.length > 0
             ? 'Ese horario acaba de ocuparse. Elige otro horario.'
-            : (liveValidation.errors[0] || 'No se pudo validar la reserva en tiempo real')
+            : getFriendlyBookingValidationMessage(liveValidation.errors[0] || 'No se pudo validar la reserva en tiempo real')
         )
         return
       }
@@ -1218,25 +1439,195 @@ export default function App() {
       }
 
       if (editingBookingId) {
-        const { error } = await supabase.from('bookings').update(payload).eq('id', editingBookingId)
+        const previousBooking = bookings.find((item) => String(item?.id) === String(editingBookingId))
+        const currentEditSnapshot = editingBookingSnapshot
 
-        if (error) {
-          console.log('update booking error:', error)
-          setBookingMessage('Error al actualizar reserva')
+        const updateResult = await updateBookingRecord({
+          supabase,
+          bookingId: editingBookingId,
+          payload,
+          draftPayload,
+          previousBooking,
+          currentEditSnapshot,
+          isSameBookingEditSnapshot,
+          validateFinalBooking,
+          loadBookingsByDate,
+          syncBookingsForDate,
+          loadBookings,
+          isAdmin,
+        })
+
+        if (updateResult.status === 'missing') {
+          cancelEditBooking()
+          await loadBookings()
+          await saveBookingAttempt({
+            supabase,
+            ...currentAttemptBase,
+            ...draftPayload,
+            attempt_status: 'failed',
+            reason: 'update_missing_before_save',
+          })
+          setBookingMessage('La reserva fue eliminada por otro admin antes de guardar.')
+          return
+        }
+
+        if (updateResult.status === 'stale') {
+          applyBookingToForm(updateResult.latestBooking)
+          await saveBookingAttempt({
+            supabase,
+            booking_id: updateResult.latestBooking?.id ?? editingBookingId,
+            ...currentAttemptBase,
+            ...draftPayload,
+            attempt_status: 'abandoned',
+            reason: 'stale_edit_snapshot',
+          })
+          setBookingMessage('La reserva cambió mientras la editabas. Se cargó la versión más reciente.')
+          return
+        }
+
+        if (updateResult.status === 'rpc_unavailable') {
+          await saveBookingAttempt({
+            supabase,
+            booking_id: editingBookingId,
+            ...currentAttemptBase,
+            ...draftPayload,
+            attempt_status: 'failed',
+            reason: 'rpc_unavailable',
+            reason_detail: 'La RPC segura de actualización no está disponible.',
+          })
+          setBookingMessage('No se pudo actualizar porque la validación segura del servidor no está disponible.')
+          return
+        }
+
+        if (updateResult.status === 'revalidation_unavailable') {
+          await saveBookingAttempt({
+            supabase,
+            booking_id: updateResult.updatedBooking?.id ?? editingBookingId,
+            ...currentAttemptBase,
+            ...draftPayload,
+            attempt_status: 'failed',
+            reason: 'update_revalidation_unavailable',
+          })
+          setBookingMessage('La reserva se actualizó, pero no se pudo revalidar el horario')
+          return
+        }
+
+        if (updateResult.status === 'rollback_failed') {
+          applyBookingToForm(updateResult.updatedBooking || previousBooking)
+          await saveBookingAttempt({
+            supabase,
+            booking_id: editingBookingId,
+            ...currentAttemptBase,
+            ...draftPayload,
+            attempt_status: 'failed',
+            reason: 'update_rollback_failed',
+            reason_detail: 'La edición quedó inconsistente y no se pudo restaurar por RPC segura.',
+          })
+          setBookingMessage('La reserva quedó en un estado que requiere revisión manual. Se recargó la última versión disponible.')
+          return
+        }
+
+        if (updateResult.status === 'live_conflict') {
+          await saveBookingAttempt({
+            supabase,
+            booking_id: editingBookingId,
+            ...currentAttemptBase,
+            ...draftPayload,
+            attempt_status: 'failed',
+            reason: 'update_live_conflict',
+          })
+          setBookingMessage('Ese horario acaba de ocuparse. No se aplicó el cambio.')
+          return
+        }
+
+        if (updateResult.status === 'error') {
+          await saveBookingAttempt({
+            supabase,
+            booking_id: editingBookingId,
+            ...currentAttemptBase,
+            ...draftPayload,
+            attempt_status: 'failed',
+            reason: 'update_error',
+            metadata: { phase: updateResult.phase || 'update' },
+          })
+          console.log('update booking error:', updateResult.error)
+          setBookingMessage(getFriendlyBookingMutationMessage(updateResult.error, 'No se pudo actualizar la reserva.'))
           return
         }
 
         await loadBookings()
+        await saveBookingAttempt({
+          supabase,
+          booking_id: updateResult.updatedBooking?.id ?? editingBookingId,
+          ...currentAttemptBase,
+          ...draftPayload,
+          attempt_status: 'confirmed',
+          reason: 'updated',
+        })
         cancelEditBooking()
         setBookingMessage('Reserva actualizada correctamente')
         return
       }
 
-      const { error } = await supabase.from('bookings').insert([payload])
+      const createResult = await createBookingRecord({
+        supabase,
+        payload,
+        draftPayload,
+        isAdmin,
+        validateFinalBooking,
+        loadBookingsByDate,
+        syncBookingsForDate,
+      })
 
-      if (error) {
-        console.log('create booking error:', error)
-        setBookingMessage('Error al guardar reserva')
+      if (createResult.status === 'rpc_unavailable') {
+        await saveBookingAttempt({
+          supabase,
+          ...currentAttemptBase,
+          ...draftPayload,
+          attempt_status: 'failed',
+          reason: 'rpc_unavailable',
+          reason_detail: 'La RPC segura de creación no está disponible.',
+        })
+        setBookingMessage('No se pudo crear porque la validación segura del servidor no está disponible.')
+        return
+      }
+
+      if (createResult.status === 'revalidation_unavailable') {
+        await saveBookingAttempt({
+          supabase,
+          booking_id: createResult.createdBookingId,
+          ...currentAttemptBase,
+          ...draftPayload,
+          attempt_status: 'failed',
+          reason: 'create_revalidation_unavailable',
+        })
+        setBookingMessage('La reserva se guardó, pero no se pudo revalidar el horario')
+        await loadBookings()
+        return
+      }
+
+      if (createResult.status === 'live_conflict') {
+        await saveBookingAttempt({
+          supabase,
+          ...currentAttemptBase,
+          ...draftPayload,
+          attempt_status: 'failed',
+          reason: 'create_live_conflict',
+        })
+        setBookingMessage('Ese horario acaba de ocuparse. No se alcanzó a guardar la reserva.')
+        return
+      }
+
+      if (createResult.status === 'error') {
+        await saveBookingAttempt({
+          supabase,
+          ...currentAttemptBase,
+          ...draftPayload,
+          attempt_status: 'failed',
+          reason: 'create_error',
+        })
+        console.log('create booking error:', createResult.error)
+        setBookingMessage(getFriendlyBookingMutationMessage(createResult.error, 'No se pudo guardar la reserva.'))
         return
       }
 
@@ -1254,15 +1645,34 @@ export default function App() {
       }
       setBookingSuccessSummary({
         ...bookingSummary,
-        whatsappLink: buildBookingFollowupWhatsappLink(bookingSummary),
+        contactLink: draftPayload.reservation_kind === 'EMPRESA' || draftPayload.reservation_kind === 'EVENTO'
+          ? buildBusinessEmailLink(bookingSummary)
+          : buildBookingFollowupWhatsappLink(bookingSummary),
       })
       setBookingCommercialContext({
         source: 'booking_created',
         kind: draftPayload.reservation_kind,
         configLabel: selectedConfig?.label || '',
       })
+      await saveBookingAttempt({
+        supabase,
+        booking_id: createResult.createdBooking?.id ?? null,
+        ...currentAttemptBase,
+        ...draftPayload,
+        attempt_status: 'confirmed',
+        reason: 'created',
+      })
       resetBookingForm()
       setBookingMessage('Reserva creada correctamente')
+    } catch (error) {
+      console.log('booking submit unexpected error:', error)
+      await saveBookingAttempt({
+        supabase,
+        ...currentAttemptBase,
+        attempt_status: 'failed',
+        reason: editingBookingId ? 'unexpected_update_error' : 'unexpected_create_error',
+      })
+      setBookingMessage(getFriendlyBookingMutationMessage(error, 'Ocurrió un error inesperado al guardar la reserva.'))
     } finally {
       setIsBookingSubmitting(false)
     }
@@ -1271,23 +1681,145 @@ export default function App() {
   async function deleteBooking(id) {
     if (!isAdmin) return
     if (isBookingSubmitting) return
+
+    const targetBooking = bookings.find((item) => String(item?.id) === String(id)) || null
     const ok = window.confirm('¿Eliminar esta reserva?')
-    if (!ok) return
+
+    if (!ok) {
+      if (targetBooking) {
+        await saveBookingAttempt({
+          supabase,
+          booking_id: targetBooking.id,
+          client: targetBooking.client,
+          phone: targetBooking.phone,
+          booking_date: targetBooking.booking_date,
+          booking_time: targetBooking.booking_time,
+          reservation_kind: targetBooking.reservation_kind,
+          simulator_config_id: targetBooking.simulator_config_id || getBookingOptionKeyFromBooking(targetBooking),
+          simulators: targetBooking.simulators,
+          standard_simulators: targetBooking.standard_simulators,
+          pro_simulators: targetBooking.pro_simulators,
+          booking_type: targetBooking.booking_type,
+          duration: targetBooking.duration,
+          total: targetBooking.total,
+          attempt_status: 'abandoned',
+          reason: 'delete_cancelled',
+          source: 'admin_delete',
+        })
+      }
+      return
+    }
 
     setIsBookingSubmitting(true)
     try {
-      const { error } = await supabase.from('bookings').delete().eq('id', id)
+      const deleteResult = await deleteBookingRecord({
+        supabase,
+        bookingId: id,
+        editingBookingId,
+        currentEditSnapshot: editingBookingId === id ? editingBookingSnapshot : null,
+        applyBookingSnapshotFilters,
+        isSameBookingEditSnapshot,
+        loadBookings,
+        syncBookingsForDate,
+        saveAttempt: async (payload) => saveBookingAttempt({ supabase, ...payload }),
+      })
 
-      if (error) {
-        console.log('delete booking error:', error)
+      if (deleteResult.status === 'missing') {
+        if (editingBookingId === id) cancelEditBooking()
+        clearBookingSuccessSummary()
+        clearBookingCommercialContext()
+        await loadBookings()
+        setBookingMessage('La reserva ya había sido eliminada.')
+        return
+      }
+
+      if (deleteResult.status === 'missing_after_snapshot') {
+        const latestBooking = deleteResult.latestBooking || targetBooking
+        if (latestBooking) {
+          await saveBookingAttempt({
+            supabase,
+            booking_id: latestBooking.id,
+            client: latestBooking.client,
+            phone: latestBooking.phone,
+            booking_date: latestBooking.booking_date,
+            booking_time: latestBooking.booking_time,
+            reservation_kind: latestBooking.reservation_kind,
+            simulator_config_id: latestBooking.simulator_config_id || getBookingOptionKeyFromBooking(latestBooking),
+            simulators: latestBooking.simulators,
+            standard_simulators: latestBooking.standard_simulators,
+            pro_simulators: latestBooking.pro_simulators,
+            booking_type: latestBooking.booking_type,
+            duration: latestBooking.duration,
+            total: latestBooking.total,
+            attempt_status: 'abandoned',
+            reason: 'delete_missing_after_snapshot',
+            source: 'admin_delete',
+          })
+        }
+        if (editingBookingId === id) cancelEditBooking()
+        clearBookingSuccessSummary()
+        clearBookingCommercialContext()
+        setBookingMessage('La reserva ya había sido eliminada.')
+        return
+      }
+
+      if (deleteResult.status === 'stale') {
+        if (deleteResult.latestBooking) applyBookingToForm(deleteResult.latestBooking)
+        setBookingMessage('La reserva cambió justo antes de eliminarla. Revísala otra vez.')
+        return
+      }
+
+      if (deleteResult.status === 'error') {
+        const latestBooking = targetBooking || {}
+        await saveBookingAttempt({
+          supabase,
+          booking_id: id,
+          client: latestBooking.client || '',
+          phone: latestBooking.phone || '',
+          booking_date: latestBooking.booking_date || '',
+          booking_time: latestBooking.booking_time || '',
+          reservation_kind: latestBooking.reservation_kind || bookingKind,
+          simulator_config_id: latestBooking.simulator_config_id || getBookingOptionKeyFromBooking(latestBooking),
+          simulators: latestBooking.simulators || 0,
+          standard_simulators: latestBooking.standard_simulators || 0,
+          pro_simulators: latestBooking.pro_simulators || 0,
+          booking_type: latestBooking.booking_type || '',
+          duration: latestBooking.duration || 0,
+          total: latestBooking.total || 0,
+          attempt_status: 'failed',
+          reason: deleteResult.phase === 'precheck' ? 'delete_precheck_error' : 'delete_error',
+          reason_detail: 'No se pudo eliminar la reserva.',
+          source: 'admin_delete',
+        })
+        console.log('delete booking error:', deleteResult.error)
         setBookingMessage('Error al eliminar reserva')
         return
       }
 
+      const deletedBooking = deleteResult.deletedBooking
+      await saveBookingAttempt({
+        supabase,
+        booking_id: deletedBooking?.id ?? id,
+        client: deletedBooking?.client || targetBooking?.client || '',
+        phone: deletedBooking?.phone || targetBooking?.phone || '',
+        booking_date: deletedBooking?.booking_date || targetBooking?.booking_date || '',
+        booking_time: deletedBooking?.booking_time || targetBooking?.booking_time || '',
+        reservation_kind: deletedBooking?.reservation_kind || targetBooking?.reservation_kind || '',
+        simulator_config_id: deletedBooking?.simulator_config_id || targetBooking?.simulator_config_id || getBookingOptionKeyFromBooking(deletedBooking || targetBooking || {}),
+        simulators: deletedBooking?.simulators ?? targetBooking?.simulators ?? 0,
+        standard_simulators: deletedBooking?.standard_simulators ?? targetBooking?.standard_simulators ?? 0,
+        pro_simulators: deletedBooking?.pro_simulators ?? targetBooking?.pro_simulators ?? 0,
+        booking_type: deletedBooking?.booking_type || targetBooking?.booking_type || '',
+        duration: deletedBooking?.duration ?? targetBooking?.duration ?? 0,
+        total: deletedBooking?.total ?? targetBooking?.total ?? 0,
+        attempt_status: 'confirmed',
+        reason: 'deleted',
+        source: 'admin_delete',
+      })
+
       if (editingBookingId === id) cancelEditBooking()
       clearBookingSuccessSummary()
       clearBookingCommercialContext()
-      await loadBookings()
       setBookingMessage('Reserva eliminada correctamente')
     } finally {
       setIsBookingSubmitting(false)
@@ -1298,49 +1830,27 @@ export default function App() {
     return calculateBookingTotal(bookingConfig, bookingDuration)
   }, [bookingConfig, bookingDuration])
 
-  const applyCommercialPrefill = (prefill = {}) => {
+  function applyCommercialPrefill(prefill = {}) {
     const segment = prefill?.segment || 'aprender'
+    const resolvedPrefill = getCommercialBookingPrefill(segment)
+
     clearBookingSuccessSummary()
     setBookingCommercialContext({
       source: 'commercial_prefill',
       segment,
-      sourceLabel: prefill?.sourceLabel || segment,
+      sourceLabel: resolvedPrefill.sourceLabel || prefill?.sourceLabel || segment,
     })
 
-    if (segment === 'empresa') {
-      setBookingKind('EMPRESA')
-      setBookingConfig('3_SIMULADORES')
-      setBookingDuration(120)
-      setBookingMessage('Reserva preconfigurada desde sección comercial: Empresa')
-      return
-    }
-
-    if (segment === 'evento') {
-      setBookingKind('EVENTO')
-      setBookingConfig('2_ESTANDAR')
-      setBookingDuration(60)
-      setBookingMessage('Reserva preconfigurada desde sección comercial: Evento')
-      return
-    }
-
-    if (segment === 'activacion') {
-      setBookingKind('EVENTO')
-      setBookingConfig('3_SIMULADORES')
-      setBookingDuration(120)
-      setBookingMessage('Reserva preconfigurada desde sección comercial: Activación')
-      return
-    }
-
-    setBookingKind('LOCAL')
-    setBookingConfig('1_ESTANDAR')
-    setBookingDuration(30)
-    setBookingMessage('Reserva preconfigurada desde sección comercial: Práctica')
+    setBookingKind(resolvedPrefill.bookingKind)
+    setBookingConfig(resolvedPrefill.bookingConfig)
+    setBookingDuration(resolvedPrefill.bookingDuration)
+    setBookingMessage(resolvedPrefill.message || 'Reserva preconfigurada desde sección comercial')
   }
 
   useEffect(() => {
     const handler = (event) => {
       setViewMode('BOOKINGS')
-      applyCommercialPrefill(event?.detail || {})
+      applyCommercialPrefillRef.current?.(event?.detail || {})
     }
 
     window.addEventListener('psr-commercial-booking-prefill', handler)
@@ -1352,7 +1862,8 @@ export default function App() {
 
     if (nextView !== 'ADMIN') {
       setAdminAccessError('')
-      setAdminKeyInput('')
+      setAdminEmailInput('')
+      setAdminPasswordInput('')
     }
 
     setViewMode(nextView)
@@ -1360,30 +1871,74 @@ export default function App() {
 
   function openAdminAccess() {
     setAdminAccessError('')
-    setAdminKeyInput('')
+    setAdminEmailInput('')
+    setAdminPasswordInput('')
     navigateToView('ADMIN')
   }
 
-  function handleAdminAccess() {
-    if ((adminKeyInput || '').trim() !== ADMIN_ACCESS_KEY) {
-      setAdminAccessError('Clave incorrecta')
+  async function handleAdminAccess() {
+    const email = String(adminEmailInput || '').trim().toLowerCase()
+    const password = String(adminPasswordInput || '')
+
+    if (!email) {
+      setAdminAccessError('Falta el correo admin.')
+      return
+    }
+
+    if (!password) {
+      setAdminAccessError('Falta la contraseña admin.')
+      return
+    }
+
+    setIsAdminAuthLoading(true)
+    setAdminAccessError('')
+
+    const { data, error } = await signInAdmin(supabase, email, password)
+
+    if (error) {
+      setIsAdminAuthLoading(false)
+      setAdminAccessError(getAdminAuthErrorMessage(error))
+      return
+    }
+
+    const adminAccess = await resolveAdminAccess(supabase, data?.session ?? null)
+
+    if (adminAccess.error) {
+      await signOutAdmin(supabase)
+      setIsAdminAuthLoading(false)
+      setAdminAccessError('Se inició sesión, pero no se pudo validar el rol admin.')
+      return
+    }
+
+    if (!adminAccess.isAdmin) {
+      await signOutAdmin(supabase)
+      setIsAdminAuthLoading(false)
+      setAdminAccessError('Ese usuario no tiene permisos de administrador.')
       return
     }
 
     clearBookingSuccessSummary()
     clearBookingCommercialContext()
+    setAdminSessionEmail(adminAccess.email || '')
     setAppMode('ADMIN')
     setAdminAccessError('')
-    setAdminKeyInput('')
+    setAdminEmailInput('')
+    setAdminPasswordInput('')
+    setIsAdminAuthLoading(false)
     navigateToView('BOOKINGS')
   }
 
-  function exitAdminMode() {
+  async function exitAdminMode() {
     clearBookingSuccessSummary()
     clearBookingCommercialContext()
-    setAppMode('USER')
     setAdminAccessError('')
-    setAdminKeyInput('')
+    setAdminEmailInput('')
+    setAdminPasswordInput('')
+    setAdminSessionEmail('')
+    setIsAdminAuthLoading(true)
+    await supabase.auth.signOut()
+    setAppMode('USER')
+    setIsAdminAuthLoading(false)
     navigateToView('BOOKINGS')
   }
 
@@ -1620,15 +2175,26 @@ export default function App() {
               <>
                 <div style={{ ...formGrid, gridTemplateColumns: '1fr', maxWidth: 360, margin: '0 auto 12px' }}>
                   <input
+                    type="email"
+                    value={adminEmailInput}
+                    onChange={(event) => setAdminEmailInput(event.target.value)}
+                    placeholder="Correo admin"
+                    autoComplete="username"
+                    style={input}
+                  />
+                  <input
                     type="password"
-                    value={adminKeyInput}
-                    onChange={(event) => setAdminKeyInput(event.target.value)}
-                    placeholder="Clave admin"
+                    value={adminPasswordInput}
+                    onChange={(event) => setAdminPasswordInput(event.target.value)}
+                    placeholder="Contraseña admin"
+                    autoComplete="current-password"
                     style={input}
                   />
                 </div>
                 <div style={{ ...buttonRow, justifyContent: 'center' }}>
-                  <button style={button} onClick={handleAdminAccess}>Entrar como admin</button>
+                  <button style={button} onClick={handleAdminAccess} disabled={isAdminAuthLoading}>
+                    {isAdminAuthLoading ? 'Validando acceso...' : 'Entrar como admin'}
+                  </button>
                   <button style={buttonSecondary} onClick={() => navigateToView('BOOKINGS')}>Volver a reservas</button>
                 </div>
                 {adminAccessError ? <div style={messageStyle}>{adminAccessError}</div> : null}
@@ -1637,11 +2203,13 @@ export default function App() {
               <>
                 <div style={{ color: '#aab6d3', marginBottom: 12 }}>
                   Ya puedes gestionar rankings, reservas, desafíos y comunidad.
+                  {adminSessionEmail ? ` Sesión activa: ${adminSessionEmail}` : ''}
                 </div>
                 <div style={{ ...buttonRow, justifyContent: 'center' }}>
                   <button style={button} onClick={() => setViewMode('BOOKINGS')}>Ir a reservas</button>
                   <button style={buttonSecondary} onClick={exitAdminMode}>Salir de admin</button>
                 </div>
+                <BookingInsightsSection />
               </>
             )}
           </div>
@@ -1672,8 +2240,12 @@ export default function App() {
             clearBookingCommercialContext={clearBookingCommercialContext}
             clearBookingSuccessSummary={clearBookingSuccessSummary}
             bookingMessage={bookingMessage}
+            bookingSuggestedTimes={bookingSuggestedTimes}
+            bookingSuggestedDates={bookingSuggestedDates}
+            editingConflictWarning={editingConflictWarning}
             isBookingSubmitting={isBookingSubmitting}
             availableTimeOptions={availableTimeOptions}
+            minPublicBookingDate={minPublicBookingDate}
             totalBooking={totalBooking}
             createOrUpdateBooking={createOrUpdateBooking}
             cancelEditBooking={cancelEditBooking}

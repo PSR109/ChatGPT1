@@ -135,6 +135,12 @@ const buttonSecondary = {
   border: '1px solid rgba(96,165,250,0.28)',
 }
 
+const stickyCtaWrap = {
+  display: 'grid',
+  gap: 10,
+  marginBottom: 18,
+}
+
 function SectionIntro({ eyebrow, title, text }) {
   return (
     <div style={{ display: 'grid', gap: 8, marginBottom: 18 }}>
@@ -211,6 +217,8 @@ export default function CommercialSection({ setActiveTab, onCommercialReserve })
     goToSegment(action)
   }
 
+  const commercialWhatsappHref = buildCommercialWhatsappLink({ segment: 'general' })
+
   return (
     <div style={wrap}>
       <style>{`
@@ -225,6 +233,15 @@ export default function CommercialSection({ setActiveTab, onCommercialReserve })
       `}</style>
 
       <section style={{ ...section, background: 'linear-gradient(180deg, rgba(8,18,48,0.98) 0%, rgba(5,11,28,0.98) 100%)' }}>
+        <div style={stickyCtaWrap}>
+          <button onClick={goToReserve} style={buttonPrimary}>
+            Reservar ahora
+          </button>
+          <a href={commercialWhatsappHref} target="_blank" rel="noreferrer" style={buttonSecondary}>
+            Hablar por WhatsApp
+          </a>
+        </div>
+
         <SectionIntro
           eyebrow="Qué es PSR"
           title="Entiende rápido de qué se trata"
@@ -341,6 +358,12 @@ export default function CommercialSection({ setActiveTab, onCommercialReserve })
         />
         <div className="psr-commercial-reviews" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
           {reviews.map((review) => <ReviewCard key={`${review.author}-${review.text}`} review={review} />)}
+        </div>
+
+        <div style={{ ...stickyCtaWrap, marginTop: 18, marginBottom: 0 }}>
+          <button onClick={goToReserve} style={buttonPrimary}>
+            Reservar ahora
+          </button>
         </div>
       </section>
     </div>

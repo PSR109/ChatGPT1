@@ -44,7 +44,6 @@ export default function LapTimeEditorSection({
   createOrUpdateLapTime,
   isEditingLapTime,
   cancelEditLapTime,
-  normalizeText,
   card,
   sectionTitle,
   formGrid,

@@ -11,7 +11,6 @@ export default function ChallengeAdminFormSection({
   setTimeValue,
   onSubmit,
   onCancelEdit,
-  normalizeText,
   formGrid,
   input,
   buttonRow,

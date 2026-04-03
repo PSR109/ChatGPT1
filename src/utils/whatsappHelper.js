@@ -1,6 +1,10 @@
+import { getCommercialBookingPrefill as getEngineCommercialBookingPrefill } from './bookingEngine.js'
+
 const PSR_PHONE = '+56984630196'
+const PSR_CONTACT_EMAIL = 'contacto@patagoniasimracing.cl'
 
 export const PSR_WHATSAPP_NUMBER = String(PSR_PHONE).replace(/\D/g, '')
+export const PSR_EMAIL = PSR_CONTACT_EMAIL
 
 function buildMessage(lines = []) {
   return lines
@@ -101,34 +105,7 @@ export function buildWhatsAppCopyText(type, options = {}) {
 }
 
 export function buildCommercialBookingPrefill(type) {
-  const prefillMap = {
-    aprender: {
-      bookingKind: 'LOCAL',
-      bookingConfig: '1_ESTANDAR',
-      bookingDuration: 30,
-      sourceLabel: 'Práctica',
-    },
-    empresa: {
-      bookingKind: 'EMPRESA',
-      bookingConfig: '3_SIMULADORES',
-      bookingDuration: 120,
-      sourceLabel: 'Empresa',
-    },
-    evento: {
-      bookingKind: 'EVENTO',
-      bookingConfig: '3_SIMULADORES',
-      bookingDuration: 120,
-      sourceLabel: 'Evento',
-    },
-    activacion: {
-      bookingKind: 'EVENTO',
-      bookingConfig: '3_SIMULADORES',
-      bookingDuration: 120,
-      sourceLabel: 'Activación',
-    },
-  }
-
-  return prefillMap[type] || prefillMap.aprender
+  return getEngineCommercialBookingPrefill(type)
 }
 
 export function buildBookingWhatsappMessage({
@@ -211,6 +188,53 @@ export function buildBookingFollowupWhatsappLink(bookingSummary) {
 export function buildDirectWhatsappLink(phone, text) {
   const cleanPhone = String(phone || '').replace(/\D/g, '')
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text || '')}`
+}
+
+
+export function buildBusinessEmailSubject({ kind } = {}) {
+  if (kind === 'EMPRESA') return 'Cotización empresa - Patagonia SimRacing'
+  if (kind === 'EVENTO') return 'Cotización evento - Patagonia SimRacing'
+  return 'Consulta comercial - Patagonia SimRacing'
+}
+
+export function buildBusinessEmailBody({
+  client,
+  phone,
+  date,
+  time,
+  kind,
+  configLabel,
+  duration,
+} = {}) {
+  const kindLabelMap = {
+    EMPRESA: 'Empresa',
+    EVENTO: 'Evento',
+  }
+
+  return [
+    'Hola,',
+    '',
+    'Quiero cotizar una experiencia en Patagonia SimRacing y les comparto lo que necesito:',
+    '',
+    `Tipo: ${kindLabelMap[kind] || kind || '-'}`,
+    `Nombre: ${client || '-'}`,
+    `WhatsApp: ${phone || '-'}`,
+    `Fecha estimada: ${date || '-'}`,
+    `Hora estimada: ${time || '-'}`,
+    `Configuración de simuladores: ${configLabel || '-'}`,
+    `Duración estimada: ${duration || '-'} min`,
+    '',
+    'Detalles o requerimientos:',
+    '-',
+    '',
+    'Quedo atento/a.',
+  ].join('\n')
+}
+
+export function buildBusinessEmailLink(options = {}) {
+  const subject = encodeURIComponent(buildBusinessEmailSubject(options))
+  const body = encodeURIComponent(buildBusinessEmailBody(options))
+  return `mailto:${PSR_EMAIL}?subject=${subject}&body=${body}`
 }
 
 function getRankingTypeCopy(rankingType) {

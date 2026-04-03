@@ -1,4 +1,25 @@
 
+export function filterValidRankingEntries(entries = []) {
+  return (entries || []).filter((e) => {
+    const time = Number(e?.time_ms)
+    const pilot = getPilotName(e)
+    return Number.isFinite(time) && time > 0 && pilot && pilot !== 'Sin nombre'
+  })
+}
+
+
+export function getUniquePilots(entries = []) {
+  const seen = new Set()
+  return entries.filter((e) => {
+    const name = getPilotName(e)
+    if (!name || name === 'Sin nombre') return false
+    if (seen.has(name)) return false
+    seen.add(name)
+    return true
+  })
+}
+
+
 
 function normalizeTextValue(value, fallback = '-') {
   const normalized = String(value ?? '').trim()
@@ -7,7 +28,7 @@ function normalizeTextValue(value, fallback = '-') {
 
 function getNumericTimeMs(entry = {}) {
   const numeric = Number(entry?.time_ms)
-  return Number.isFinite(numeric) ? numeric : Number.POSITIVE_INFINITY
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : Number.POSITIVE_INFINITY
 }
 
 export const getPilotName = (entry = {}) => {

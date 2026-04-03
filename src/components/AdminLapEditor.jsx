@@ -21,6 +21,8 @@ function AdminLapEditor({
   cancelEditLapTime,
   normalizeText,
 }) {
+  const normalizeTextInput = normalizeText
+
   if (!isAdmin || !lapEditId) return null
 
   return (

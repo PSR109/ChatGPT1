@@ -14,7 +14,6 @@ export default function LapTimeEditorFieldsSection({
   setLapEditCar,
   lapEditTime,
   setLapEditTime,
-  normalizeText,
   formGrid,
   input,
 }) {
