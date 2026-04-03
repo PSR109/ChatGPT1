@@ -404,11 +404,11 @@ export default function BookingFormSection(props) {
             >
               ✓
             </div>
-            <h2 style={heroTitleStyle}>Reserva lista</h2>
+            <h2 style={heroTitleStyle}>Reserva confirmada ✅</h2>
             <p style={heroSubtitleStyle}>
               {successIsBusinessBooking
                 ? 'Tu solicitud quedó registrada. Para eventos y empresas, el siguiente paso es escribirnos por correo para definir requerimientos.'
-                : 'Tu reserva quedó registrada. Si quieres acelerar la confirmación, puedes escribirnos por WhatsApp ahora.'}
+                : 'Tu reserva quedó registrada. Te esperamos en PSR. Si quieres acelerar la confirmación, puedes escribirnos por WhatsApp ahora.'}
             </p>
           </div>
 
@@ -439,6 +439,20 @@ export default function BookingFormSection(props) {
               >
                 {bookingSuccessSummary.whatsappReminder ? 'Con recordatorio WhatsApp' : 'Sin recordatorio'}
               </div>
+            </div>
+
+            <div
+              style={{
+                borderRadius: 14,
+                padding: '10px 12px',
+                background: 'rgba(41,129,243,0.08)',
+                border: '1px solid rgba(41,129,243,0.18)',
+                color: '#DCEBFF',
+                fontSize: 12,
+                lineHeight: 1.45,
+              }}
+            >
+              Horarios se llenan rápido después de las 18:00
             </div>
 
             <div style={summaryGridStyle}>
@@ -586,6 +600,11 @@ export default function BookingFormSection(props) {
         <div style={{ ...introCardStyle, display: 'grid', gap: 18 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ display: 'grid', gap: 6 }}>
+              {!editingBookingId ? (
+                <p style={{ ...helperTextStyle, color: '#DCEBFF', fontWeight: 700 }}>
+                  Reserva tu simulador en menos de 30 segundos
+                </p>
+              ) : null}
               <h2 style={{ ...heroTitleStyle, textAlign: 'left', fontSize: 'clamp(22px, 4.6vw, 28px)' }}>
                 {editingBookingId ? 'Actualiza tu reserva' : 'Confirma tu reserva'}
               </h2>
@@ -815,7 +834,7 @@ export default function BookingFormSection(props) {
                 }}
               >
                 <div style={{ color: '#F5FAFF', fontSize: 13, fontWeight: 800 }}>
-                  Ese bloque ya no está disponible.
+                  Este horario ya no está disponible, prueba otro.
                 </div>
                 <div style={{ color: '#AEC3D6', fontSize: 13, lineHeight: 1.45 }}>
                   {isBusinessBooking

@@ -1,7 +1,6 @@
 const MISSING_RPC_CODES = new Set(['42883', 'PGRST202'])
 const MISSING_TABLE_CODES = new Set(['42P01', 'PGRST205'])
 const MISSING_COLUMN_CODES = new Set(['42703', 'PGRST204'])
-const ATTEMPT_REQUIRED_KEYS = ['client', 'phone', 'simulators']
 
 function extractErrorText(error) {
   return String(
@@ -60,21 +59,26 @@ function buildReasonDetail(payload = {}) {
 
 function shouldPersistAttempt(payload = {}) {
   const normalized = {
-    client: normalizeTextField(payload.client),
-    phone: normalizeTextField(payload.phone),
+    booking_id: payload.booking_id,
+    booking_date: normalizeTextField(payload.booking_date),
+    booking_time: normalizeTextField(payload.booking_time),
     simulators: normalizeNumberField(payload.simulators, 0),
+    source: normalizeAttemptSource(payload.source),
+    attempt_status: normalizeTextField(payload.attempt_status || payload.status || '', 'unknown'),
   }
 
-  const isComplete = ATTEMPT_REQUIRED_KEYS.every((key) => {
-    if (key === 'simulators') return normalized.simulators > 0
-    return Boolean(normalized[key])
-  })
+  const hasIdentity = normalized.booking_id !== null && normalized.booking_id !== undefined
+  const hasSchedule = Boolean(normalized.booking_date) && Boolean(normalized.booking_time)
+  const hasSimulatorSelection = normalized.simulators > 0
+  const canPersist = (hasIdentity || (hasSchedule && hasSimulatorSelection))
+    && Boolean(normalized.source)
+    && Boolean(normalized.attempt_status)
 
-  if (!isComplete) {
-    console.warn('[bookingPersistence] attempt skipped: incomplete critical payload', normalized)
+  if (!canPersist) {
+    console.warn('[bookingPersistence] attempt skipped: insufficient payload', normalized)
   }
 
-  return isComplete
+  return canPersist
 }
 
 function buildRpcPayload(payload = {}) {

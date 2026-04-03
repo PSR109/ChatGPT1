@@ -69,7 +69,6 @@ const getNearestBookingDateSuggestions = bookingEngine.getNearestBookingDateSugg
 const isTimeSlotAvailable = bookingEngine.isTimeSlotAvailable
 const buildBookingEditSnapshot = bookingEngine.buildBookingEditSnapshot
 const isSameBookingEditSnapshot = bookingEngine.isSameBookingEditSnapshot
-const applyBookingSnapshotFilters = bookingEngine.applyBookingSnapshotFilters
 const getCommercialBookingPrefill = bookingEngine.getCommercialBookingPrefill
 
 const isBookingDbCapacityError = bookingEngine.isBookingDbCapacityError
@@ -1307,7 +1306,66 @@ export default function App() {
     setBookingWhatsappReminder(false)
   }
 
-  function cancelEditBooking() {
+  function hasUnsavedBookingEditChanges() {
+    if (!editingBookingId || !editingBookingSnapshot) return false
+
+    const draftPayload = buildBookingMutationPayload({
+      client: normalizeText(bookingClient),
+      phone: normalizePhone(bookingPhone),
+      whatsapp_reminder: bookingWhatsappReminder,
+      booking_date: bookingDate,
+      booking_time: bookingTime,
+      reservation_kind: bookingKind,
+      duration: Number(bookingDuration),
+      simulator_config_id: bookingConfig,
+    })
+
+    const draftSnapshot = {
+      id: editingBookingId,
+      client: draftPayload.client,
+      phone: draftPayload.phone,
+      booking_date: draftPayload.booking_date,
+      booking_time: draftPayload.booking_time,
+      reservation_kind: draftPayload.reservation_kind,
+      bookingConfig: draftPayload.simulator_config_id,
+      booking_type: draftPayload.booking_type,
+      bookingDuration: draftPayload.duration,
+      simulators: draftPayload.simulators,
+      total: draftPayload.total,
+      standard_simulators: draftPayload.standard_simulators,
+      pro_simulators: draftPayload.pro_simulators,
+      whatsapp_reminder: draftPayload.whatsapp_reminder,
+    }
+
+    return !isSameBookingEditSnapshot(editingBookingSnapshot, draftSnapshot)
+  }
+
+  async function trackAbandonedBookingEdit() {
+    if (!editingBookingId || !editingBookingSnapshot || !hasUnsavedBookingEditChanges()) return
+
+    await saveBookingAttempt({
+      supabase,
+      booking_id: editingBookingId,
+      client: bookingClient,
+      phone: bookingPhone,
+      booking_date: bookingDate,
+      booking_time: bookingTime,
+      reservation_kind: bookingKind,
+      simulator_config_id: bookingConfig,
+      simulators: BOOKING_OPTIONS[bookingConfig]?.simulators || 0,
+      standard_simulators: BOOKING_OPTIONS[bookingConfig]?.standard || 0,
+      pro_simulators: BOOKING_OPTIONS[bookingConfig]?.pro || 0,
+      booking_type: BOOKING_OPTIONS[bookingConfig]?.type || '',
+      duration: Number(bookingDuration || 0),
+      total: Number(totalBooking || 0),
+      attempt_status: 'abandoned',
+      reason: 'edit_cancelled_with_changes',
+      source: 'admin_update',
+    })
+  }
+
+  async function cancelEditBooking() {
+    await trackAbandonedBookingEdit()
     resetBookingForm()
     clearBookingCommercialContext()
     clearBookingSuccessSummary()
@@ -1717,7 +1775,6 @@ export default function App() {
         bookingId: id,
         editingBookingId,
         currentEditSnapshot: editingBookingId === id ? editingBookingSnapshot : null,
-        applyBookingSnapshotFilters,
         isSameBookingEditSnapshot,
         loadBookings,
         syncBookingsForDate,
