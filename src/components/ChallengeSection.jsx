@@ -114,7 +114,6 @@ function ChallengeSummary({ challenge, leaderboard, isMobile, type }) {
           <div style={{ display: 'grid', gap: 8 }}>
             <div style={{ fontWeight: 800 }}>• Corre este combo y compárate al instante.</div>
             <div style={{ opacity: 0.84 }}>• El mejor tiempo se lleva el liderazgo del {type === 'weekly' ? 'reto semanal' : 'reto mensual'}.</div>
-            <div style={{ opacity: 0.84 }}>• Mientras más alto subas, más ganas de volver genera la app.</div>
           </div>
         </div>
 
