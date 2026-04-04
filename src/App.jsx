@@ -26,7 +26,7 @@ import ForumSection from './components/ForumSection'
 import BookingInsightsSection from './components/BookingInsightsSection'
 import MainTabsNav from './components/MainTabsNav'
 import { buildBookingFollowupWhatsappLink, buildBusinessEmailLink } from './utils/whatsappHelper'
-import { createBookingRecord, deleteBookingRecord, saveBookingAttempt, updateBookingRecord } from './utils/bookingPersistence.js'
+import { createBookingRecord, deleteBookingRecord, getBookingById, listBookings, listBookingsByDate, saveBookingAttempt, updateBookingRecord } from './utils/bookingPersistence.js'
 import { getAdminAuthErrorMessage, getAdminEmailFromSession, resolveAdminAccess, signInAdmin, signOutAdmin } from './utils/adminAuth.js'
 import {
   page,
@@ -86,8 +86,12 @@ function getFriendlyBookingValidationMessage(message = '') {
     'No puedes crear reservas en una fecha pasada.': 'No puedes reservar una fecha pasada.',
     'No puedes reservar un horario que ya pasó.': 'Ese horario ya pasó. Elige otro.',
     'La hora seleccionada no es válida.': 'La hora seleccionada no es válida.',
-    'La duración mínima es 15 minutos.': 'La duración mínima es 15 minutos.',
-    'La duración debe avanzar en bloques de 15 minutos.': 'La duración debe ser en bloques de 15 minutos.',
+    'La duración mínima es 15 minutos.': 'La duración mínima es 30 minutos.',
+    'La duración mínima es 30 minutos.': 'La duración mínima es 30 minutos.',
+    'La duración debe avanzar en bloques de 15 minutos.': 'La duración debe ser en bloques de 30 minutos.',
+    'La duración debe avanzar en bloques de 30 minutos.': 'La duración debe ser en bloques de 30 minutos.',
+    'La duración debe ser en bloques de 15 minutos.': 'La duración debe ser en bloques de 30 minutos.',
+    'La duración debe ser en bloques de 30 minutos.': 'La duración debe ser en bloques de 30 minutos.',
     'La configuración de simuladores no es válida.': 'La configuración de simuladores no es válida.',
     'No puedes reservar más de 2 simuladores estándar.': 'No puedes reservar más de 2 simuladores estándar.',
     'No puedes reservar más de 1 simulador pro.': 'No puedes reservar más de 1 simulador pro.',
@@ -152,6 +156,50 @@ function buildChallengeLeaderboard(entries) {
   }))
 }
 
+
+function getSafeChallengeId(challenge) {
+  const id = Number(challenge?.id)
+  if (!Number.isFinite(id) || id <= 0) return null
+  return id
+}
+
+function resolveChallengeRecord(challenges, type) {
+  const rows = Array.isArray(challenges) ? challenges : []
+  if (rows.length === 0) return null
+
+  const picked = pickActiveChallenge(rows, type)
+  const pickedId = getSafeChallengeId(picked)
+  if (picked && pickedId) return picked
+
+  const firstValid = rows.find((row) => getSafeChallengeId(row))
+  return firstValid || null
+}
+
+function getFriendlyChallengeMutationMessage(error, fallbackMessage = 'No se pudo completar la acción del desafío.') {
+  const raw = String(error?.message || error?.details || fallbackMessage || '').trim()
+  const normalized = raw.toLowerCase()
+
+  if (!normalized) return fallbackMessage
+
+  if (normalized.includes('ya existe un desafío semanal activo')) {
+    return 'Ya existe un desafío semanal activo'
+  }
+
+  if (normalized.includes('ya existe un desafío mensual activo')) {
+    return 'Ya existe un desafío mensual activo'
+  }
+
+  if (normalized.includes('challenge_entries_unique_challenge_player') || normalized.includes('duplicate key value')) {
+    return 'Ese piloto ya tiene un tiempo registrado en este desafío'
+  }
+
+  if (normalized.includes('network') || normalized.includes('fetch')) {
+    return 'No se pudo conectar con Supabase. Revisa internet e inténtalo otra vez.'
+  }
+
+  return raw || fallbackMessage
+}
+
 export default function App() {
   const [appMode, setAppMode] = useState('USER')
   const [viewMode, setViewMode] = useState('BOOKINGS')
@@ -169,6 +217,7 @@ export default function App() {
   const [weeklyEntries, setWeeklyEntries] = useState([])
   const [monthlyEntries, setMonthlyEntries] = useState([])
   const [bookings, setBookings] = useState([])
+  const [dataSyncMessage, setDataSyncMessage] = useState('')
 
   const [generalGame, setGeneralGame] = useState('TODOS')
   const [generalTrack, setGeneralTrack] = useState('TODOS')
@@ -309,12 +358,18 @@ export default function App() {
     if (isAdmin) return
 
     cancelEditLapTime()
-    cancelEditBookingRef.current?.()
+    cancelEditBookingRef.current?.('system')
     cancelEditWeeklyEntry()
     cancelEditMonthlyEntry()
   }, [isAdmin])
 
+  function reportDataSyncError(message, error) {
+    console.log('data sync error:', error)
+    setDataSyncMessage(message)
+  }
+
   async function loadAll() {
+    setDataSyncMessage('')
     await Promise.all([
       loadLapTimes(),
       loadWeeklyChallenge(),
@@ -332,8 +387,7 @@ export default function App() {
       .order('time_ms', { ascending: true })
 
     if (error) {
-      console.log('lap_times error:', error)
-      setLapTimes([])
+      reportDataSyncError('No se pudo actualizar el ranking general. Se mantienen los últimos datos cargados.', error)
       return
     }
 
@@ -351,18 +405,17 @@ export default function App() {
       .limit(25)
 
     if (error) {
-      console.log(`${type} challenge error:`, error)
-      setChallenge(null)
-      setEntries([])
+      reportDataSyncError(`No se pudo actualizar el desafío ${type === 'weekly' ? 'semanal' : 'mensual'}. Se mantienen los últimos datos cargados.`, error)
       return
     }
 
-    const activeChallenge = pickActiveChallenge(data, type)
+    const activeChallenge = resolveChallengeRecord(data, type)
+    const activeChallengeId = getSafeChallengeId(activeChallenge)
 
     setChallenge(activeChallenge)
 
-    if (activeChallenge) {
-      await loadChallengeEntries(type, activeChallenge.id, setEntries)
+    if (activeChallengeId) {
+      await loadChallengeEntries(type, activeChallengeId, setEntries)
     } else {
       setEntries([])
     }
@@ -392,8 +445,7 @@ export default function App() {
       .order('time_ms', { ascending: true })
 
     if (error) {
-      console.log('challenge entries error:', error)
-      setter([])
+      reportDataSyncError(`No se pudo actualizar la tabla del desafío ${type === 'weekly' ? 'semanal' : 'mensual'}. Se mantienen los últimos datos cargados.`, error)
       return
     }
 
@@ -401,31 +453,19 @@ export default function App() {
   }
 
   async function loadBookings() {
-    const { data, error } = await supabase
-      .from('bookings')
-      .select('*')
-      .order('booking_date', { ascending: true })
-      .order('booking_time', { ascending: true })
+    const { data, error } = await listBookings({ supabase })
 
     if (error) {
-      console.log('bookings error:', error)
-      setBookings([])
+      reportDataSyncError('No se pudieron actualizar las reservas. Se mantienen los últimos datos cargados.', error)
       return []
     }
 
-    const rows = data || []
-    setBookings(rows)
-    return rows
+    setBookings(data || [])
+    return data || []
   }
 
   async function loadBookingsByDate(dateValue) {
-    if (!dateValue) return []
-
-    const { data, error } = await supabase
-      .from('bookings')
-      .select('*')
-      .eq('booking_date', dateValue)
-      .order('booking_time', { ascending: true })
+    const { data, error } = await listBookingsByDate({ supabase, dateValue })
 
     if (error) {
       console.log('bookings by date error:', error)
@@ -654,8 +694,12 @@ export default function App() {
   useEffect(() => {
     if (editingMatchesSnapshot && editingBookingId && bookingTime) return
 
+    if (availableTimeOptions.length === 0) {
+      return
+    }
+
     if (!availableTimeOptions.includes(bookingTime)) {
-      setBookingTime(availableTimeOptions[0] || '')
+      setBookingTime(availableTimeOptions[0])
     }
   }, [availableTimeOptions, bookingTime, editingMatchesSnapshot, editingBookingId])
 
@@ -755,21 +799,18 @@ export default function App() {
           return
         }
       } else {
-        const { error: insertError } = await supabase
-          .from('challenge_entries')
-          .insert([{
-            challenge_type: 'weekly',
-            challenge_id: weeklyChallenge.id,
-            player: cleanPlayer,
-            country: 'CL',
-            time: cleanTime,
-            time_ms: timeMs,
-            car: weeklyChallenge.car,
-          }])
+        const { error: insertError } = await supabase.rpc('upsert_weekly_entry_safe', {
+          p_challenge_id: weeklyChallenge.id,
+          p_player: cleanPlayer,
+          p_country: 'CL',
+          p_time: cleanTime,
+          p_time_ms: timeMs,
+          p_car: weeklyChallenge.car,
+        })
 
         if (insertError) {
           console.log('insert weekly error:', insertError)
-          setWeeklyMessage('Error al guardar tiempo')
+          setWeeklyMessage(getFriendlyChallengeMutationMessage(insertError, 'Error al guardar tiempo'))
           return
         }
 
@@ -874,21 +915,18 @@ export default function App() {
           return
         }
       } else {
-        const { error: insertError } = await supabase
-          .from('challenge_entries')
-          .insert([{
-            challenge_type: 'monthly',
-            challenge_id: monthlyChallenge.id,
-            player: cleanPlayer,
-            country: 'CL',
-            time: cleanTime,
-            time_ms: timeMs,
-            car: monthlyChallenge.car,
-          }])
+        const { error: insertError } = await supabase.rpc('upsert_monthly_entry_safe', {
+          p_challenge_id: monthlyChallenge.id,
+          p_player: cleanPlayer,
+          p_country: 'CL',
+          p_time: cleanTime,
+          p_time_ms: timeMs,
+          p_car: monthlyChallenge.car,
+        })
 
         if (insertError) {
           console.log('insert monthly error:', insertError)
-          setMonthlyMessage('Error al guardar tiempo')
+          setMonthlyMessage(getFriendlyChallengeMutationMessage(insertError, 'Error al guardar tiempo'))
           return
         }
 
@@ -922,16 +960,18 @@ export default function App() {
 
     const isWeekly = type === 'weekly'
     const activeChallenge = isWeekly ? weeklyChallenge : monthlyChallenge
+    const activeChallengeId = getSafeChallengeId(activeChallenge)
     const game = normalizeText(isWeekly ? weeklyChallengeGame : monthlyChallengeGame)
     const track = normalizeText(isWeekly ? weeklyChallengeTrack : monthlyChallengeTrack)
     const car = normalizeText(isWeekly ? weeklyChallengeCar : monthlyChallengeCar)
     const endAtRaw = isWeekly ? weeklyChallengeEndAt : monthlyChallengeEndAt
     const setMessage = isWeekly ? setWeeklyMessage : setMonthlyMessage
     const tableName = isWeekly ? 'weekly_challenges' : 'monthly_challenges'
+    const title = `${game} · ${track} · ${car}`
 
     setMessage('')
 
-    if (activeChallenge) {
+    if (activeChallengeId) {
       setMessage(`Ya existe un desafío ${isWeekly ? 'semanal' : 'mensual'} activo`)
       return
     }
@@ -953,17 +993,29 @@ export default function App() {
     }
 
     const payload = {
+      title,
       game,
       track,
       car,
       end_at: endAtDate.toISOString(),
     }
 
-    const { error } = await supabase.from(tableName).insert([payload])
+    const { data, error } = await supabase
+      .from(tableName)
+      .insert([payload])
+      .select('*')
+      .single()
 
     if (error) {
       console.log(`create ${type} challenge error:`, error)
-      setMessage('Error al crear desafío')
+      setMessage(getFriendlyChallengeMutationMessage(error, 'Error al crear desafío'))
+      return
+    }
+
+    const createdChallengeId = getSafeChallengeId(data)
+    if (!createdChallengeId) {
+      console.log(`create ${type} challenge invalid row:`, data)
+      setMessage('El desafío se creó, pero no volvió con un id válido.')
       return
     }
 
@@ -971,11 +1023,13 @@ export default function App() {
     setMessage(`Desafío ${isWeekly ? 'semanal' : 'mensual'} creado correctamente`)
 
     if (isWeekly) {
-      await loadWeeklyChallenge()
+      setWeeklyChallenge(data)
+      setWeeklyEntries([])
       return
     }
 
-    await loadMonthlyChallenge()
+    setMonthlyChallenge(data)
+    setMonthlyEntries([])
   }
 
   async function deleteActiveChallenge(type) {
@@ -987,29 +1041,13 @@ export default function App() {
     const ok = window.confirm(`¿Eliminar este desafío ${type === 'weekly' ? 'semanal' : 'mensual'} y todos sus tiempos?`)
     if (!ok) return
 
-    const { error: entriesError } = await supabase
-      .from('challenge_entries')
-      .delete()
-      .eq('challenge_type', type)
-      .eq('challenge_id', challenge.id)
+    const rpcName = type === 'weekly' ? 'delete_weekly_challenge_safe' : 'delete_monthly_challenge_safe'
+    const { error: deleteError } = await supabase.rpc(rpcName, { p_challenge_id: challenge.id })
 
-    if (entriesError) {
-      console.log(`delete ${type} entries error:`, entriesError)
-      if (type === 'weekly') setWeeklyMessage('Error al eliminar tiempos del desafío')
-      if (type === 'monthly') setMonthlyMessage('Error al eliminar tiempos del desafío')
-      return
-    }
-
-    const tableName = type === 'weekly' ? 'weekly_challenges' : 'monthly_challenges'
-    const { error: challengeError } = await supabase
-      .from(tableName)
-      .delete()
-      .eq('id', challenge.id)
-
-    if (challengeError) {
-      console.log(`delete ${type} challenge error:`, challengeError)
-      if (type === 'weekly') setWeeklyMessage('Error al eliminar desafío')
-      if (type === 'monthly') setMonthlyMessage('Error al eliminar desafío')
+    if (deleteError) {
+      console.log(`delete ${type} challenge error:`, deleteError)
+      if (type === 'weekly') setWeeklyMessage(getFriendlyChallengeMutationMessage(deleteError, 'Error al eliminar desafío'))
+      if (type === 'monthly') setMonthlyMessage(getFriendlyChallengeMutationMessage(deleteError, 'Error al eliminar desafío'))
       return
     }
 
@@ -1235,11 +1273,7 @@ export default function App() {
     setBookingMessage('Validando reserva para edición...')
 
     try {
-      const { data: latestBooking, error } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('id', booking.id)
-        .maybeSingle()
+      const { data: latestBooking, error } = await getBookingById({ supabase, bookingId: booking.id })
 
       if (error) {
         console.log('start edit booking error:', error)
@@ -1248,7 +1282,7 @@ export default function App() {
       }
 
       if (!latestBooking) {
-        if (editingBookingId === booking.id) cancelEditBooking()
+        if (editingBookingId === booking.id) cancelEditBooking('system')
         clearBookingSuccessSummary()
         clearBookingCommercialContext()
         await loadBookings()
@@ -1306,6 +1340,53 @@ export default function App() {
     setBookingWhatsappReminder(false)
   }
 
+  function buildAttemptPayloadFromBooking(booking = {}, overrides = {}) {
+    const fallbackConfigKey = overrides.simulator_config_id || booking.simulator_config_id || getBookingOptionKeyFromBooking(booking) || bookingConfig
+    const fallbackConfig = BOOKING_OPTIONS[fallbackConfigKey] || {}
+
+    return {
+      booking_id: booking.id ?? overrides.booking_id ?? null,
+      client: normalizeText(booking.client || overrides.client || ''),
+      phone: normalizePhone(booking.phone || overrides.phone || ''),
+      booking_date: booking.booking_date || overrides.booking_date || '',
+      booking_time: booking.booking_time || overrides.booking_time || '',
+      reservation_kind: booking.reservation_kind || overrides.reservation_kind || 'LOCAL',
+      simulator_config_id: fallbackConfigKey,
+      simulators: booking.simulators ?? overrides.simulators ?? fallbackConfig.simulators ?? 0,
+      standard_simulators: booking.standard_simulators ?? overrides.standard_simulators ?? fallbackConfig.standard ?? 0,
+      pro_simulators: booking.pro_simulators ?? overrides.pro_simulators ?? fallbackConfig.pro ?? 0,
+      booking_type: booking.booking_type || overrides.booking_type || fallbackConfig.label || '',
+      duration: Number(booking.duration ?? overrides.duration ?? 0),
+      total: Number(booking.total ?? overrides.total ?? 0),
+      ...overrides,
+    }
+  }
+
+  function buildCurrentAttemptPayload(overrides = {}) {
+    const currentConfig = BOOKING_OPTIONS[bookingConfig] || {}
+
+    return {
+      booking_id: editingBookingId || null,
+      client: normalizeText(bookingClient),
+      phone: normalizePhone(bookingPhone),
+      booking_date: bookingDate,
+      booking_time: bookingTime,
+      reservation_kind: bookingKind,
+      simulator_config_id: bookingConfig,
+      simulators: currentConfig.simulators || 0,
+      standard_simulators: currentConfig.standard || 0,
+      pro_simulators: currentConfig.pro || 0,
+      booking_type: currentConfig.label || '',
+      duration: Number(bookingDuration || 0),
+      total: Number(totalBooking || 0),
+      ...overrides,
+    }
+  }
+
+  async function persistBookingAttempt(payload = {}) {
+    return saveBookingAttempt({ supabase, ...payload })
+  }
+
   function hasUnsavedBookingEditChanges() {
     if (!editingBookingId || !editingBookingSnapshot) return false
 
@@ -1343,29 +1424,17 @@ export default function App() {
   async function trackAbandonedBookingEdit() {
     if (!editingBookingId || !editingBookingSnapshot || !hasUnsavedBookingEditChanges()) return
 
-    await saveBookingAttempt({
-      supabase,
-      booking_id: editingBookingId,
-      client: bookingClient,
-      phone: bookingPhone,
-      booking_date: bookingDate,
-      booking_time: bookingTime,
-      reservation_kind: bookingKind,
-      simulator_config_id: bookingConfig,
-      simulators: BOOKING_OPTIONS[bookingConfig]?.simulators || 0,
-      standard_simulators: BOOKING_OPTIONS[bookingConfig]?.standard || 0,
-      pro_simulators: BOOKING_OPTIONS[bookingConfig]?.pro || 0,
-      booking_type: BOOKING_OPTIONS[bookingConfig]?.type || '',
-      duration: Number(bookingDuration || 0),
-      total: Number(totalBooking || 0),
+    await persistBookingAttempt(buildCurrentAttemptPayload({
       attempt_status: 'abandoned',
       reason: 'edit_cancelled_with_changes',
       source: 'admin_update',
-    })
+    }))
   }
 
-  async function cancelEditBooking() {
-    await trackAbandonedBookingEdit()
+  async function cancelEditBooking(reason = 'manual') {
+    if (reason === 'manual') {
+      await trackAbandonedBookingEdit()
+    }
     resetBookingForm()
     clearBookingCommercialContext()
     clearBookingSuccessSummary()
@@ -1384,6 +1453,14 @@ export default function App() {
       duration: Number(bookingDuration),
       total: Number(totalBooking || 0),
       source: editingBookingId ? 'admin_update' : (isAdmin ? 'admin_create' : 'public_create'),
+    }
+
+    async function persistSubmitAttempt(draftPayload, overrides = {}) {
+      return persistBookingAttempt({
+        ...currentAttemptBase,
+        ...draftPayload,
+        ...overrides,
+      })
     }
 
     setBookingMessage(editingBookingId ? 'Guardando cambios...' : 'Guardando reserva...')
@@ -1406,10 +1483,7 @@ export default function App() {
 
       if (!localValidation.valid) {
         if (localValidation.conflicts.length > 0) {
-          await saveBookingAttempt({
-            supabase,
-            ...currentAttemptBase,
-            ...draftPayload,
+          await persistSubmitAttempt(draftPayload, {
             attempt_status: 'failed',
             reason: 'local_conflict',
             metadata: { scope: 'local', conflicts: localValidation.conflicts.length },
@@ -1424,10 +1498,7 @@ export default function App() {
           || !draftPayload.booking_date
           || !draftPayload.booking_time
         ) {
-          await saveBookingAttempt({
-            supabase,
-            ...currentAttemptBase,
-            ...draftPayload,
+          await persistSubmitAttempt(draftPayload, {
             attempt_status: 'failed',
             reason: 'incomplete_required_fields',
           })
@@ -1435,10 +1506,7 @@ export default function App() {
           return
         }
 
-        await saveBookingAttempt({
-          supabase,
-          ...currentAttemptBase,
-          ...draftPayload,
+        await persistSubmitAttempt(draftPayload, {
           attempt_status: 'failed',
           reason: 'validation_error',
           metadata: { first_error: localValidation.errors[0] || '' },
@@ -1450,10 +1518,7 @@ export default function App() {
       const freshBookings = await loadBookingsByDate(draftPayload.booking_date)
 
       if (freshBookings === null) {
-        await saveBookingAttempt({
-          supabase,
-          ...currentAttemptBase,
-          ...draftPayload,
+        await persistSubmitAttempt(draftPayload, {
           attempt_status: 'failed',
           reason: 'live_validation_unavailable',
         })
@@ -1465,10 +1530,7 @@ export default function App() {
 
       if (!liveValidation.valid) {
         syncBookingsForDate(draftPayload.booking_date, freshBookings)
-        await saveBookingAttempt({
-          supabase,
-          ...currentAttemptBase,
-          ...draftPayload,
+        await persistSubmitAttempt(draftPayload, {
           attempt_status: 'failed',
           reason: liveValidation.conflicts.length > 0 ? 'live_conflict' : 'live_validation_error',
           metadata: { first_error: liveValidation.errors[0] || '', conflicts: liveValidation.conflicts.length },
@@ -1516,12 +1578,9 @@ export default function App() {
         })
 
         if (updateResult.status === 'missing') {
-          cancelEditBooking()
+          cancelEditBooking('system')
           await loadBookings()
-          await saveBookingAttempt({
-            supabase,
-            ...currentAttemptBase,
-            ...draftPayload,
+          await persistSubmitAttempt(draftPayload, {
             attempt_status: 'failed',
             reason: 'update_missing_before_save',
           })
@@ -1531,11 +1590,8 @@ export default function App() {
 
         if (updateResult.status === 'stale') {
           applyBookingToForm(updateResult.latestBooking)
-          await saveBookingAttempt({
-            supabase,
+          await persistSubmitAttempt(draftPayload, {
             booking_id: updateResult.latestBooking?.id ?? editingBookingId,
-            ...currentAttemptBase,
-            ...draftPayload,
             attempt_status: 'abandoned',
             reason: 'stale_edit_snapshot',
           })
@@ -1543,12 +1599,20 @@ export default function App() {
           return
         }
 
-        if (updateResult.status === 'rpc_unavailable') {
-          await saveBookingAttempt({
-            supabase,
+        if (updateResult.status === 'invalid_payload') {
+          await persistSubmitAttempt(draftPayload, {
             booking_id: editingBookingId,
-            ...currentAttemptBase,
-            ...draftPayload,
+            attempt_status: 'failed',
+            reason: 'invalid_payload',
+            metadata: { first_error: updateResult.validationErrors?.[0] || '' },
+          })
+          setBookingMessage(getFriendlyBookingValidationMessage(updateResult.validationErrors?.[0]))
+          return
+        }
+
+        if (updateResult.status === 'rpc_unavailable') {
+          await persistSubmitAttempt(draftPayload, {
+            booking_id: editingBookingId,
             attempt_status: 'failed',
             reason: 'rpc_unavailable',
             reason_detail: 'La RPC segura de actualización no está disponible.',
@@ -1558,11 +1622,8 @@ export default function App() {
         }
 
         if (updateResult.status === 'revalidation_unavailable') {
-          await saveBookingAttempt({
-            supabase,
+          await persistSubmitAttempt(draftPayload, {
             booking_id: updateResult.updatedBooking?.id ?? editingBookingId,
-            ...currentAttemptBase,
-            ...draftPayload,
             attempt_status: 'failed',
             reason: 'update_revalidation_unavailable',
           })
@@ -1572,11 +1633,8 @@ export default function App() {
 
         if (updateResult.status === 'rollback_failed') {
           applyBookingToForm(updateResult.updatedBooking || previousBooking)
-          await saveBookingAttempt({
-            supabase,
+          await persistSubmitAttempt(draftPayload, {
             booking_id: editingBookingId,
-            ...currentAttemptBase,
-            ...draftPayload,
             attempt_status: 'failed',
             reason: 'update_rollback_failed',
             reason_detail: 'La edición quedó inconsistente y no se pudo restaurar por RPC segura.',
@@ -1586,11 +1644,8 @@ export default function App() {
         }
 
         if (updateResult.status === 'live_conflict') {
-          await saveBookingAttempt({
-            supabase,
+          await persistSubmitAttempt(draftPayload, {
             booking_id: editingBookingId,
-            ...currentAttemptBase,
-            ...draftPayload,
             attempt_status: 'failed',
             reason: 'update_live_conflict',
           })
@@ -1599,11 +1654,8 @@ export default function App() {
         }
 
         if (updateResult.status === 'error') {
-          await saveBookingAttempt({
-            supabase,
+          await persistSubmitAttempt(draftPayload, {
             booking_id: editingBookingId,
-            ...currentAttemptBase,
-            ...draftPayload,
             attempt_status: 'failed',
             reason: 'update_error',
             metadata: { phase: updateResult.phase || 'update' },
@@ -1614,15 +1666,12 @@ export default function App() {
         }
 
         await loadBookings()
-        await saveBookingAttempt({
-          supabase,
+        await persistSubmitAttempt(draftPayload, {
           booking_id: updateResult.updatedBooking?.id ?? editingBookingId,
-          ...currentAttemptBase,
-          ...draftPayload,
           attempt_status: 'confirmed',
           reason: 'updated',
         })
-        cancelEditBooking()
+        cancelEditBooking('system')
         setBookingMessage('Reserva actualizada correctamente')
         return
       }
@@ -1637,11 +1686,18 @@ export default function App() {
         syncBookingsForDate,
       })
 
+      if (createResult.status === 'invalid_payload') {
+        await persistSubmitAttempt(draftPayload, {
+          attempt_status: 'failed',
+          reason: 'invalid_payload',
+          metadata: { first_error: createResult.validationErrors?.[0] || '' },
+        })
+        setBookingMessage(getFriendlyBookingValidationMessage(createResult.validationErrors?.[0]))
+        return
+      }
+
       if (createResult.status === 'rpc_unavailable') {
-        await saveBookingAttempt({
-          supabase,
-          ...currentAttemptBase,
-          ...draftPayload,
+        await persistSubmitAttempt(draftPayload, {
           attempt_status: 'failed',
           reason: 'rpc_unavailable',
           reason_detail: 'La RPC segura de creación no está disponible.',
@@ -1651,11 +1707,8 @@ export default function App() {
       }
 
       if (createResult.status === 'revalidation_unavailable') {
-        await saveBookingAttempt({
-          supabase,
+        await persistSubmitAttempt(draftPayload, {
           booking_id: createResult.createdBookingId,
-          ...currentAttemptBase,
-          ...draftPayload,
           attempt_status: 'failed',
           reason: 'create_revalidation_unavailable',
         })
@@ -1665,10 +1718,7 @@ export default function App() {
       }
 
       if (createResult.status === 'live_conflict') {
-        await saveBookingAttempt({
-          supabase,
-          ...currentAttemptBase,
-          ...draftPayload,
+        await persistSubmitAttempt(draftPayload, {
           attempt_status: 'failed',
           reason: 'create_live_conflict',
         })
@@ -1677,10 +1727,7 @@ export default function App() {
       }
 
       if (createResult.status === 'error') {
-        await saveBookingAttempt({
-          supabase,
-          ...currentAttemptBase,
-          ...draftPayload,
+        await persistSubmitAttempt(draftPayload, {
           attempt_status: 'failed',
           reason: 'create_error',
         })
@@ -1712,11 +1759,8 @@ export default function App() {
         kind: draftPayload.reservation_kind,
         configLabel: selectedConfig?.label || '',
       })
-      await saveBookingAttempt({
-        supabase,
+      await persistSubmitAttempt(draftPayload, {
         booking_id: createResult.createdBooking?.id ?? null,
-        ...currentAttemptBase,
-        ...draftPayload,
         attempt_status: 'confirmed',
         reason: 'created',
       })
@@ -1724,8 +1768,7 @@ export default function App() {
       setBookingMessage('Reserva creada correctamente')
     } catch (error) {
       console.log('booking submit unexpected error:', error)
-      await saveBookingAttempt({
-        supabase,
+      await persistBookingAttempt({
         ...currentAttemptBase,
         attempt_status: 'failed',
         reason: editingBookingId ? 'unexpected_update_error' : 'unexpected_create_error',
@@ -1741,28 +1784,23 @@ export default function App() {
     if (isBookingSubmitting) return
 
     const targetBooking = bookings.find((item) => String(item?.id) === String(id)) || null
+
+    async function persistDeleteAttempt(overrides = {}, booking = targetBooking || {}) {
+      return persistBookingAttempt(buildAttemptPayloadFromBooking(booking, {
+        booking_id: booking?.id ?? id,
+        reservation_kind: booking?.reservation_kind || bookingKind,
+        source: 'admin_delete',
+        ...overrides,
+      }))
+    }
+
     const ok = window.confirm('¿Eliminar esta reserva?')
 
     if (!ok) {
       if (targetBooking) {
-        await saveBookingAttempt({
-          supabase,
-          booking_id: targetBooking.id,
-          client: targetBooking.client,
-          phone: targetBooking.phone,
-          booking_date: targetBooking.booking_date,
-          booking_time: targetBooking.booking_time,
-          reservation_kind: targetBooking.reservation_kind,
-          simulator_config_id: targetBooking.simulator_config_id || getBookingOptionKeyFromBooking(targetBooking),
-          simulators: targetBooking.simulators,
-          standard_simulators: targetBooking.standard_simulators,
-          pro_simulators: targetBooking.pro_simulators,
-          booking_type: targetBooking.booking_type,
-          duration: targetBooking.duration,
-          total: targetBooking.total,
+        await persistDeleteAttempt({
           attempt_status: 'abandoned',
           reason: 'delete_cancelled',
-          source: 'admin_delete',
         })
       }
       return
@@ -1778,11 +1816,11 @@ export default function App() {
         isSameBookingEditSnapshot,
         loadBookings,
         syncBookingsForDate,
-        saveAttempt: async (payload) => saveBookingAttempt({ supabase, ...payload }),
+        saveAttempt: persistBookingAttempt,
       })
 
       if (deleteResult.status === 'missing') {
-        if (editingBookingId === id) cancelEditBooking()
+        if (editingBookingId === id) cancelEditBooking('system')
         clearBookingSuccessSummary()
         clearBookingCommercialContext()
         await loadBookings()
@@ -1793,27 +1831,12 @@ export default function App() {
       if (deleteResult.status === 'missing_after_snapshot') {
         const latestBooking = deleteResult.latestBooking || targetBooking
         if (latestBooking) {
-          await saveBookingAttempt({
-            supabase,
-            booking_id: latestBooking.id,
-            client: latestBooking.client,
-            phone: latestBooking.phone,
-            booking_date: latestBooking.booking_date,
-            booking_time: latestBooking.booking_time,
-            reservation_kind: latestBooking.reservation_kind,
-            simulator_config_id: latestBooking.simulator_config_id || getBookingOptionKeyFromBooking(latestBooking),
-            simulators: latestBooking.simulators,
-            standard_simulators: latestBooking.standard_simulators,
-            pro_simulators: latestBooking.pro_simulators,
-            booking_type: latestBooking.booking_type,
-            duration: latestBooking.duration,
-            total: latestBooking.total,
+          await persistDeleteAttempt({
             attempt_status: 'abandoned',
             reason: 'delete_missing_after_snapshot',
-            source: 'admin_delete',
-          })
+          }, latestBooking)
         }
-        if (editingBookingId === id) cancelEditBooking()
+        if (editingBookingId === id) cancelEditBooking('system')
         clearBookingSuccessSummary()
         clearBookingCommercialContext()
         setBookingMessage('La reserva ya había sido eliminada.')
@@ -1826,55 +1849,34 @@ export default function App() {
         return
       }
 
+      if (deleteResult.status === 'rpc_unavailable') {
+        await persistDeleteAttempt({
+          attempt_status: 'failed',
+          reason: 'rpc_unavailable',
+          reason_detail: 'La RPC segura de borrado no está disponible.',
+        })
+        setBookingMessage('No se pudo eliminar porque la validación segura del servidor no está disponible.')
+        return
+      }
+
       if (deleteResult.status === 'error') {
-        const latestBooking = targetBooking || {}
-        await saveBookingAttempt({
-          supabase,
-          booking_id: id,
-          client: latestBooking.client || '',
-          phone: latestBooking.phone || '',
-          booking_date: latestBooking.booking_date || '',
-          booking_time: latestBooking.booking_time || '',
-          reservation_kind: latestBooking.reservation_kind || bookingKind,
-          simulator_config_id: latestBooking.simulator_config_id || getBookingOptionKeyFromBooking(latestBooking),
-          simulators: latestBooking.simulators || 0,
-          standard_simulators: latestBooking.standard_simulators || 0,
-          pro_simulators: latestBooking.pro_simulators || 0,
-          booking_type: latestBooking.booking_type || '',
-          duration: latestBooking.duration || 0,
-          total: latestBooking.total || 0,
+        await persistDeleteAttempt({
           attempt_status: 'failed',
           reason: deleteResult.phase === 'precheck' ? 'delete_precheck_error' : 'delete_error',
           reason_detail: 'No se pudo eliminar la reserva.',
-          source: 'admin_delete',
         })
         console.log('delete booking error:', deleteResult.error)
         setBookingMessage('Error al eliminar reserva')
         return
       }
 
-      const deletedBooking = deleteResult.deletedBooking
-      await saveBookingAttempt({
-        supabase,
-        booking_id: deletedBooking?.id ?? id,
-        client: deletedBooking?.client || targetBooking?.client || '',
-        phone: deletedBooking?.phone || targetBooking?.phone || '',
-        booking_date: deletedBooking?.booking_date || targetBooking?.booking_date || '',
-        booking_time: deletedBooking?.booking_time || targetBooking?.booking_time || '',
-        reservation_kind: deletedBooking?.reservation_kind || targetBooking?.reservation_kind || '',
-        simulator_config_id: deletedBooking?.simulator_config_id || targetBooking?.simulator_config_id || getBookingOptionKeyFromBooking(deletedBooking || targetBooking || {}),
-        simulators: deletedBooking?.simulators ?? targetBooking?.simulators ?? 0,
-        standard_simulators: deletedBooking?.standard_simulators ?? targetBooking?.standard_simulators ?? 0,
-        pro_simulators: deletedBooking?.pro_simulators ?? targetBooking?.pro_simulators ?? 0,
-        booking_type: deletedBooking?.booking_type || targetBooking?.booking_type || '',
-        duration: deletedBooking?.duration ?? targetBooking?.duration ?? 0,
-        total: deletedBooking?.total ?? targetBooking?.total ?? 0,
+      const deletedBooking = deleteResult.deletedBooking || targetBooking || {}
+      await persistDeleteAttempt({
         attempt_status: 'confirmed',
         reason: 'deleted',
-        source: 'admin_delete',
-      })
+      }, deletedBooking)
 
-      if (editingBookingId === id) cancelEditBooking()
+      if (editingBookingId === id) cancelEditBooking('system')
       clearBookingSuccessSummary()
       clearBookingCommercialContext()
       setBookingMessage('Reserva eliminada correctamente')
@@ -1950,39 +1952,47 @@ export default function App() {
     setIsAdminAuthLoading(true)
     setAdminAccessError('')
 
-    const { data, error } = await signInAdmin(supabase, email, password)
+    try {
+      const { data, error } = await signInAdmin(supabase, email, password)
 
-    if (error) {
+      if (error) {
+        setAdminAccessError(getAdminAuthErrorMessage(error))
+        return
+      }
+
+      const adminAccess = await resolveAdminAccess(supabase, data?.session ?? null)
+
+      if (adminAccess.error) {
+        await signOutAdmin(supabase)
+        setAdminAccessError('Se inició sesión, pero no se pudo validar el rol admin.')
+        return
+      }
+
+      if (!adminAccess.isAdmin) {
+        await signOutAdmin(supabase)
+        setAdminAccessError('Ese usuario no tiene permisos de administrador.')
+        return
+      }
+
+      clearBookingSuccessSummary()
+      clearBookingCommercialContext()
+      setAdminSessionEmail(adminAccess.email || '')
+      setAppMode('ADMIN')
+      setAdminAccessError('')
+      setAdminEmailInput('')
+      setAdminPasswordInput('')
+      navigateToView('BOOKINGS')
+    } catch (error) {
+      console.log('handle admin access error:', error)
+      try {
+        await signOutAdmin(supabase)
+      } catch (signOutError) {
+        console.log('handle admin access sign out error:', signOutError)
+      }
+      setAdminAccessError('No se pudo validar el acceso admin. Inténtalo otra vez.')
+    } finally {
       setIsAdminAuthLoading(false)
-      setAdminAccessError(getAdminAuthErrorMessage(error))
-      return
     }
-
-    const adminAccess = await resolveAdminAccess(supabase, data?.session ?? null)
-
-    if (adminAccess.error) {
-      await signOutAdmin(supabase)
-      setIsAdminAuthLoading(false)
-      setAdminAccessError('Se inició sesión, pero no se pudo validar el rol admin.')
-      return
-    }
-
-    if (!adminAccess.isAdmin) {
-      await signOutAdmin(supabase)
-      setIsAdminAuthLoading(false)
-      setAdminAccessError('Ese usuario no tiene permisos de administrador.')
-      return
-    }
-
-    clearBookingSuccessSummary()
-    clearBookingCommercialContext()
-    setAdminSessionEmail(adminAccess.email || '')
-    setAppMode('ADMIN')
-    setAdminAccessError('')
-    setAdminEmailInput('')
-    setAdminPasswordInput('')
-    setIsAdminAuthLoading(false)
-    navigateToView('BOOKINGS')
   }
 
   async function exitAdminMode() {
@@ -1993,10 +2003,16 @@ export default function App() {
     setAdminPasswordInput('')
     setAdminSessionEmail('')
     setIsAdminAuthLoading(true)
-    await supabase.auth.signOut()
-    setAppMode('USER')
-    setIsAdminAuthLoading(false)
-    navigateToView('BOOKINGS')
+
+    try {
+      await signOutAdmin(supabase)
+    } catch (error) {
+      console.log('exit admin mode error:', error)
+    } finally {
+      setAppMode('USER')
+      setIsAdminAuthLoading(false)
+      navigateToView('BOOKINGS')
+    }
   }
 
   return (
@@ -2009,6 +2025,8 @@ export default function App() {
           subtitle={subtitle}
           onAdminBadgeClick={isAdmin ? exitAdminMode : undefined}
         />
+
+        {dataSyncMessage ? <div style={{ ...messageStyle, marginBottom: 12 }}>{dataSyncMessage}</div> : null}
 
         {viewMode === 'GENERAL' && (
           <>

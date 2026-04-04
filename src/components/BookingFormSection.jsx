@@ -5,7 +5,7 @@ import StatusMessage from './StatusMessage'
 import { normalizeTextInput } from '../utils/psrUtils'
 import { PSR_EMAIL, buildBookingWhatsappLink, buildBusinessEmailLink } from '../utils/whatsappHelper'
 
-const DURATION_OPTIONS = [15, 30, 60, 90, 120, 150, 180]
+const DURATION_OPTIONS = [30, 60, 90, 120, 150, 180]
 
 const kindCards = {
   LOCAL: {

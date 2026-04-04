@@ -1,7 +1,7 @@
 /**
  * WRAPPER / COMPATIBILIDAD
- * Mantiene exports heredados delegando 100% en bookingEngine.js.
- * La lógica principal de reservas vive en bookingEngine.js.
+ * Mantiene compatibilidad sin lógica propia.
+ * bookingEngine.js sigue siendo la única fuente activa de reglas de reservas.
  */
 import * as bookingEngine from './bookingEngine.js'
 

@@ -63,6 +63,7 @@ export const RESERVATION_KIND_OPTIONS = Object.values(BOOKING_OPTIONS).map((opti
 export const OPEN_MINUTES = 10 * 60 + 30
 export const CLOSE_MINUTES = 20 * 60
 export const BOOKING_LIMITS = { standard: 2, pro: 1 }
+export const BOOKING_DURATION_OPTIONS = [30, 60, 90, 120, 150, 180]
 
 export const COMMERCIAL_BOOKING_PREFILLS = {
   aprender: {
@@ -212,7 +213,7 @@ function sanitizePositiveInteger(value, fallback) {
 function sanitizeBookingDurationValue(value, fallback = 30) {
   const parsed = Number(value)
   if (!Number.isFinite(parsed)) return fallback
-  return Math.max(15, Math.round(parsed))
+  return Math.max(30, Math.round(parsed))
 }
 
 function resolveBookingOption(payload = {}) {
@@ -297,7 +298,7 @@ export function normalizeBookingDraft(payload = {}) {
 function getReservationRange(booking = {}) {
   const normalized = normalizeBookingDraft(booking)
   const start = timeToMinutes(normalized.booking_time)
-  const duration = Math.max(15, Number(normalized.duration || 30))
+  const duration = Math.max(30, Number(normalized.duration || 30))
   const end = start === null ? null : start + duration
 
   return {
@@ -381,12 +382,12 @@ export function validateBookingPayload(payload, bookings = [], ignoreId = null, 
   const total = Number(draft.total)
   const expectedTotal = calculateBookingTotal(expectedKey, draft.duration)
 
-  if (!Number.isFinite(Number(draft.duration)) || Number(draft.duration) < 15) {
-    errors.push('La duración mínima es 15 minutos.')
+  if (!Number.isFinite(Number(draft.duration)) || Number(draft.duration) < 30) {
+    errors.push('La duración mínima es 30 minutos.')
   }
 
-  if (Number(draft.duration) % 15 !== 0) {
-    errors.push('La duración debe avanzar en bloques de 15 minutos.')
+  if (Number(draft.duration) % 30 !== 0) {
+    errors.push('La duración debe avanzar en bloques de 30 minutos.')
   }
 
   if (config.standard < 0 || config.pro < 0) {
@@ -890,10 +891,8 @@ const BOOKING_PRICE_TABLE = {
 }
 
 function calculateUnitBookingPrice(priceTable, totalMinutes) {
-  const minutes = Math.max(15, Number(totalMinutes || 0))
-  if (minutes <= 15) return priceTable.q15
-  if (minutes < 30) return priceTable.q15 + ((priceTable.h1 / 60) * (minutes - 15))
-  if (minutes == 30) return priceTable.q30
+  const minutes = Math.max(30, Number(totalMinutes || 0))
+  if (minutes === 30) return priceTable.q30
   if (minutes < 60) return priceTable.q30 + ((priceTable.h1 / 60) * (minutes - 30))
   return (priceTable.h1 / 60) * minutes
 }

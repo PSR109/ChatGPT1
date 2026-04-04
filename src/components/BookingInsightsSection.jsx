@@ -30,6 +30,7 @@ function formatReasonLabel(reason = '') {
     create_live_conflict: 'Conflicto al crear',
     update_live_conflict: 'Conflicto al editar',
     validation_error: 'Validación fallida',
+    invalid_payload: 'Payload inválido',
     live_validation_error: 'Validación en vivo fallida',
     incomplete_required_fields: 'Formulario incompleto',
     create_error: 'Error al crear',
@@ -53,6 +54,7 @@ function formatReasonLabel(reason = '') {
     user_cancel: 'Canceló reserva en curso',
     user_back_edit: 'Salió de edición con volver',
     user_cancel_edit: 'Canceló edición',
+    edit_cancelled_with_changes: 'Edición cancelada con cambios',
     user_abandoned: 'Abandonó flujo',
     user_cancelled: 'Canceló flujo',
     sin_detalle: 'Sin detalle',
@@ -65,7 +67,6 @@ function formatSourceLabel(source = '') {
   const labels = {
     booking_flow: 'Flujo de reservas',
     public_create: 'Reserva pública',
-    public_draft: 'Borrador público',
     admin_create: 'Creación admin',
     admin_update: 'Edición admin',
     admin_delete: 'Borrado admin',
@@ -107,7 +108,7 @@ function calculateRate(part, total) {
 
 function isDemandRow(row) {
   const source = getAttemptSource(row)
-  return source === 'public_create' || source === 'public_draft'
+  return source === 'public_create'
 }
 
 function isCommercialDemandRow(row) {

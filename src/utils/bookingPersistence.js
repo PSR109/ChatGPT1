@@ -1,3 +1,5 @@
+import { BOOKING_OPTIONS, calculateBookingTotal } from './bookingEngine.js'
+
 const MISSING_RPC_CODES = new Set(['42883', 'PGRST202'])
 const MISSING_TABLE_CODES = new Set(['42P01', 'PGRST205'])
 const MISSING_COLUMN_CODES = new Set(['42703', 'PGRST204'])
@@ -98,6 +100,70 @@ function buildRpcPayload(payload = {}) {
   }
 }
 
+
+function isHalfHourSlot(time = '') {
+  const normalized = String(time ?? '').trim()
+  if (!/^\d{2}:\d{2}$/.test(normalized)) return false
+
+  const [hours, minutes] = normalized.split(':').map(Number)
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return false
+  if (hours < 0 || hours > 23) return false
+
+  return minutes === 0 || minutes === 30
+}
+
+function validateMutationPayload(payload = {}) {
+  const errors = []
+  const client = normalizeTextField(payload.client)
+  const phone = normalizeTextField(payload.phone)
+  const bookingDate = normalizeTextField(payload.booking_date)
+  const bookingTime = normalizeTextField(payload.booking_time)
+  const simulators = normalizeNumberField(payload.simulators, 0)
+  const standardSimulators = normalizeNumberField(payload.standard_simulators, 0)
+  const proSimulators = normalizeNumberField(payload.pro_simulators, 0)
+  const duration = normalizeNumberField(payload.duration, 0)
+  const total = normalizeNumberField(payload.total, 0)
+  const bookingType = normalizeTextField(payload.booking_type)
+  const matchingOption = Object.values(BOOKING_OPTIONS).find((option) => (
+    option.simulators === simulators
+    && option.standard === standardSimulators
+    && option.pro === proSimulators
+    && option.label === bookingType
+  ))
+
+  if (!client) errors.push('Debes ingresar el nombre del cliente.')
+  if (!phone) errors.push('Debes ingresar teléfono o WhatsApp.')
+  if (!bookingDate) errors.push('Debes seleccionar una fecha.')
+  if (!bookingTime) errors.push('Debes seleccionar una hora.')
+  if (bookingTime && !isHalfHourSlot(bookingTime)) errors.push('La hora seleccionada no es válida.')
+  if (!Number.isFinite(duration) || duration < 30) {
+    errors.push('La duración mínima es 30 minutos.')
+  }
+  if (!Number.isFinite(duration) || duration % 30 !== 0) {
+    errors.push('La duración debe ser en bloques de 30 minutos.')
+  }
+  if (standardSimulators < 0 || standardSimulators > 2) {
+    errors.push('No puedes reservar más de 2 simuladores estándar.')
+  }
+  if (proSimulators < 0 || proSimulators > 1) {
+    errors.push('No puedes reservar más de 1 simulador pro.')
+  }
+  if (simulators <= 0 || simulators > 3 || simulators !== (standardSimulators + proSimulators)) {
+    errors.push('La cantidad total de simuladores no coincide con la configuración elegida.')
+  }
+  if (!matchingOption) {
+    errors.push('La configuración de simuladores no coincide con la selección actual.')
+  }
+  const expectedTotal = matchingOption ? calculateBookingTotal(matchingOption.key, duration) : null
+  if (!Number.isFinite(total) || total <= 0) {
+    errors.push('El total calculado no es válido.')
+  } else if (expectedTotal !== null && Number(total) !== Number(expectedTotal)) {
+    errors.push('El total no coincide con la configuración y duración elegidas.')
+  }
+
+  return { valid: errors.length === 0, errors }
+}
+
 function buildLegacyAttemptPayload(payload = {}) {
   return {
     booking_date: payload.booking_date || null,
@@ -167,9 +233,77 @@ export async function saveBookingAttempt({ supabase, ...payload }) {
   return { ok: false, error: response.error }
 }
 
+
+function sortBookingsChronologically(rows = []) {
+  return [...rows].sort((a, b) => {
+    const dateCompare = String(a?.booking_date || '').localeCompare(String(b?.booking_date || ''))
+    if (dateCompare !== 0) return dateCompare
+
+    const timeCompare = String(a?.booking_time || '').localeCompare(String(b?.booking_time || ''))
+    if (timeCompare !== 0) return timeCompare
+
+    return Number(a?.id || 0) - Number(b?.id || 0)
+  })
+}
+
+export async function listBookings({ supabase }) {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select('*')
+    .order('booking_date', { ascending: true })
+    .order('booking_time', { ascending: true })
+
+  return {
+    data: sortBookingsChronologically(data || []),
+    error,
+  }
+}
+
+export async function listBookingsByDate({ supabase, dateValue }) {
+  if (!dateValue) return { data: [], error: null }
+
+  const { data, error } = await supabase
+    .from('bookings')
+    .select('*')
+    .eq('booking_date', dateValue)
+    .order('booking_time', { ascending: true })
+
+  return {
+    data: sortBookingsChronologically(data || []),
+    error,
+  }
+}
+
+export async function getBookingById({ supabase, bookingId }) {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select('*')
+    .eq('id', bookingId)
+    .maybeSingle()
+
+  return { data, error }
+}
+
 async function createBookingWithRpc({ supabase, payload }) {
   const { data, error } = await supabase.rpc('psr_create_booking_safe', buildRpcPayload(payload))
   return { data, error, usedRpc: true }
+}
+
+async function createBookingDirect({ supabase, payload }) {
+  const { data, error } = await supabase
+    .from('bookings')
+    .insert([payload])
+    .select('*')
+
+  return { data, error, usedRpc: false }
+}
+
+async function createBookingMutation({ supabase, payload }) {
+  const rpcResult = await createBookingWithRpc({ supabase, payload })
+  if (!rpcResult.error || !isMissingRpcError(rpcResult.error)) return rpcResult
+
+  const fallbackResult = await createBookingDirect({ supabase, payload })
+  return { ...fallbackResult, fallbackUsed: true, rpcError: rpcResult.error }
 }
 
 async function updateBookingWithRpc({ supabase, bookingId, payload }) {
@@ -181,12 +315,48 @@ async function updateBookingWithRpc({ supabase, bookingId, payload }) {
   return { data, error, usedRpc: true }
 }
 
+async function updateBookingDirect({ supabase, bookingId, payload }) {
+  const { data, error } = await supabase
+    .from('bookings')
+    .update(payload)
+    .eq('id', bookingId)
+    .select('*')
+
+  return { data, error, usedRpc: false }
+}
+
+async function updateBookingMutation({ supabase, bookingId, payload }) {
+  const rpcResult = await updateBookingWithRpc({ supabase, bookingId, payload })
+  if (!rpcResult.error || !isMissingRpcError(rpcResult.error)) return rpcResult
+
+  const fallbackResult = await updateBookingDirect({ supabase, bookingId, payload })
+  return { ...fallbackResult, fallbackUsed: true, rpcError: rpcResult.error }
+}
+
 async function deleteBookingWithRpc({ supabase, bookingId }) {
   const { data, error } = await supabase.rpc('psr_delete_booking_safe', {
     p_booking_id: bookingId,
   })
 
   return { data, error, usedRpc: true }
+}
+
+async function deleteBookingDirect({ supabase, bookingId }) {
+  const { data, error } = await supabase
+    .from('bookings')
+    .delete()
+    .eq('id', bookingId)
+    .select('*')
+
+  return { data, error, usedRpc: false }
+}
+
+async function deleteBookingMutation({ supabase, bookingId }) {
+  const rpcResult = await deleteBookingWithRpc({ supabase, bookingId })
+  if (!rpcResult.error || !isMissingRpcError(rpcResult.error)) return rpcResult
+
+  const fallbackResult = await deleteBookingDirect({ supabase, bookingId })
+  return { ...fallbackResult, fallbackUsed: true, rpcError: rpcResult.error }
 }
 
 export async function createBookingRecord({
@@ -198,11 +368,12 @@ export async function createBookingRecord({
   loadBookingsByDate,
   syncBookingsForDate,
 }) {
-  const result = await createBookingWithRpc({ supabase, payload })
-
-  if (result.error && isMissingRpcError(result.error)) {
-    return { status: 'rpc_unavailable', error: result.error }
+  const payloadValidation = validateMutationPayload(payload)
+  if (!payloadValidation.valid) {
+    return { status: 'invalid_payload', validationErrors: payloadValidation.errors }
   }
+
+  const result = await createBookingMutation({ supabase, payload })
 
   if (result.error) {
     return { status: 'error', error: result.error }
@@ -229,7 +400,7 @@ export async function createBookingRecord({
 
   if (!postInsertValidation.valid) {
     if (createdBookingId !== null) {
-      await deleteBookingWithRpc({ supabase, bookingId: createdBookingId })
+      await deleteBookingMutation({ supabase, bookingId: createdBookingId })
     }
 
     const refreshedBookings = await loadBookingsByDate(draftPayload.booking_date)
@@ -269,6 +440,11 @@ export async function updateBookingRecord({
   loadBookings,
   isAdmin,
 }) {
+  const payloadValidation = validateMutationPayload(payload)
+  if (!payloadValidation.valid) {
+    return { status: 'invalid_payload', validationErrors: payloadValidation.errors }
+  }
+
   const { data: latestEditingBooking, error: latestEditingBookingError } = await supabase
     .from('bookings')
     .select('*')
@@ -298,11 +474,7 @@ export async function updateBookingRecord({
     }
   }
 
-  const result = await updateBookingWithRpc({ supabase, bookingId, payload })
-
-  if (result.error && isMissingRpcError(result.error)) {
-    return { status: 'rpc_unavailable', error: result.error, phase: 'update' }
-  }
+  const result = await updateBookingMutation({ supabase, bookingId, payload })
 
   if (result.error) {
     return { status: 'error', error: result.error, phase: 'update' }
@@ -369,7 +541,7 @@ export async function updateBookingRecord({
         standard_simulators: previousBooking.standard_simulators,
         pro_simulators: previousBooking.pro_simulators,
       }
-      const rollbackResult = await updateBookingWithRpc({ supabase, bookingId, payload: rollbackPayload })
+      const rollbackResult = await updateBookingMutation({ supabase, bookingId, payload: rollbackPayload })
       if (rollbackResult.error) {
         return {
           status: 'rollback_failed',
@@ -448,11 +620,7 @@ export async function deleteBookingRecord({
     return { status: 'stale', latestBooking, refreshedBookings: refreshed }
   }
 
-  const deleteResult = await deleteBookingWithRpc({ supabase, bookingId })
-
-  if (deleteResult.error && isMissingRpcError(deleteResult.error)) {
-    return { status: 'rpc_unavailable', error: deleteResult.error, phase: 'delete' }
-  }
+  const deleteResult = await deleteBookingMutation({ supabase, bookingId })
 
   if (deleteResult.error) {
     return { status: 'error', error: deleteResult.error, phase: 'delete' }
