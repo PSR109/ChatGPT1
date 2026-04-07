@@ -25,14 +25,18 @@ export const page = {
   background:
     'radial-gradient(circle at top, rgba(41, 129, 243, 0.16), transparent 28%), radial-gradient(circle at 85% 12%, rgba(14, 44, 64, 0.34), transparent 24%), linear-gradient(180deg, #061018 0%, #081521 100%)',
   color: colors.textMain,
-  padding: '24px 12px 132px',
+  padding: 'clamp(14px, 3vw, 24px) clamp(10px, 3vw, 12px) 132px',
   fontFamily: 'Inter, Arial, sans-serif',
+  width: '100%',
+  maxWidth: '100%',
+  overflowX: 'hidden',
 }
 
 export const container = {
   width: '100%',
   maxWidth: 1180,
   margin: '0 auto',
+  minWidth: 0,
 }
 
 export const hero = {
@@ -121,10 +125,11 @@ export const card = {
   background: `linear-gradient(180deg, ${colors.cardBg} 0%, ${colors.cardBgSoft} 100%)`,
   border: `1px solid ${colors.borderStrong}`,
   borderRadius: 24,
-  padding: 20,
+  padding: 'clamp(14px, 3.4vw, 20px)',
   marginBottom: 18,
   boxShadow: colors.shadow,
   width: '100%',
+  maxWidth: '100%',
   boxSizing: 'border-box',
   overflow: 'hidden',
   backdropFilter: 'blur(12px)',
@@ -150,7 +155,7 @@ export const line = {
 
 export const formGrid = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
   gap: 12,
   marginBottom: 14,
 }
@@ -248,7 +253,7 @@ export const tableWrap = {
 export const table = {
   width: '100%',
   borderCollapse: 'collapse',
-  minWidth: 760,
+  minWidth: 640,
 }
 
 export const th = {

@@ -259,6 +259,37 @@ export async function listBookings({ supabase }) {
   }
 }
 
+async function listBookingAvailabilityFromView({ supabase, dateValue = '' }) {
+  let query = supabase
+    .from('booking_availability')
+    .select('*')
+
+  if (dateValue) {
+    query = query.eq('booking_date', dateValue)
+  }
+
+  const { data, error } = await query
+    .order('booking_date', { ascending: true })
+    .order('booking_time', { ascending: true })
+
+  return {
+    data: sortBookingsChronologically(data || []),
+    error,
+  }
+}
+
+export async function listBookingAvailability({ supabase }) {
+  const result = await listBookingAvailabilityFromView({ supabase })
+  if (!result.error || !isMissingTableError(result.error)) return result
+
+  const fallback = await listBookings({ supabase })
+  return {
+    ...fallback,
+    fallbackUsed: true,
+    sourceError: result.error,
+  }
+}
+
 export async function listBookingsByDate({ supabase, dateValue }) {
   if (!dateValue) return { data: [], error: null }
 
@@ -271,6 +302,20 @@ export async function listBookingsByDate({ supabase, dateValue }) {
   return {
     data: sortBookingsChronologically(data || []),
     error,
+  }
+}
+
+export async function listBookingAvailabilityByDate({ supabase, dateValue }) {
+  if (!dateValue) return { data: [], error: null }
+
+  const result = await listBookingAvailabilityFromView({ supabase, dateValue })
+  if (!result.error || !isMissingTableError(result.error)) return result
+
+  const fallback = await listBookingsByDate({ supabase, dateValue })
+  return {
+    ...fallback,
+    fallbackUsed: true,
+    sourceError: result.error,
   }
 }
 

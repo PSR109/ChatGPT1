@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from './db.js'
 import {
   buildTimeOptions,
@@ -10,23 +10,23 @@ import {
   formatGap,
   getGameOrderIndex,
 } from './utils/psrUtils'
-// ACTIVE RANKING LAYER: App.jsx usa GeneralRankingSection como capa principal.
-// Antes de tocar capas heredadas, validar primero este import y su uso real.
-import GeneralRankingSection from './components/GeneralRankingSection'
 import BookingsSection from './components/BookingsSection'
-import ChallengeSection from './components/ChallengeSection'
 import { isChallengeExpired, pickActiveChallenge } from './utils/challengeUtils'
 import * as bookingEngine from './utils/bookingEngine.js'
-import PointsSection from './components/PointsSection'
 import LayoutHeader from './components/LayoutHeader'
-import LapTimeEditorSection from './components/LapTimeEditorSection'
-import PilotProfileSection from './components/PilotProfileSection'
-import CommercialSection from './components/CommercialSection'
-import ForumSection from './components/ForumSection'
-import BookingInsightsSection from './components/BookingInsightsSection'
 import MainTabsNav from './components/MainTabsNav'
 import { buildBookingFollowupWhatsappLink, buildBusinessEmailLink } from './utils/whatsappHelper'
-import { createBookingRecord, deleteBookingRecord, getBookingById, listBookings, listBookingsByDate, saveBookingAttempt, updateBookingRecord } from './utils/bookingPersistence.js'
+import {
+  createBookingRecord,
+  deleteBookingRecord,
+  getBookingById,
+  listBookingAvailability,
+  listBookingAvailabilityByDate,
+  listBookings,
+  listBookingsByDate,
+  saveBookingAttempt,
+  updateBookingRecord,
+} from './utils/bookingPersistence.js'
 import { getAdminAuthErrorMessage, getAdminEmailFromSession, resolveAdminAccess, signInAdmin, signOutAdmin } from './utils/adminAuth.js'
 import {
   page,
@@ -52,6 +52,15 @@ import {
   th,
   td,
 } from './styles/appStyles'
+
+const GeneralRankingSection = lazy(() => import('./components/GeneralRankingSection'))
+const ChallengeSection = lazy(() => import('./components/ChallengeSection'))
+const PointsSection = lazy(() => import('./components/PointsSection'))
+const LapTimeEditorSection = lazy(() => import('./components/LapTimeEditorSection'))
+const PilotProfileSection = lazy(() => import('./components/PilotProfileSection'))
+const CommercialSection = lazy(() => import('./components/CommercialSection'))
+const ForumSection = lazy(() => import('./components/ForumSection'))
+const BookingInsightsSection = lazy(() => import('./components/BookingInsightsSection'))
 
 const TIME_OPTIONS = buildTimeOptions('10:30', '20:00', 30)
 
@@ -200,6 +209,21 @@ function getFriendlyChallengeMutationMessage(error, fallbackMessage = 'No se pud
   return raw || fallbackMessage
 }
 
+function SectionLoadingFallback() {
+  return (
+    <div
+      style={{
+        ...card,
+        textAlign: 'center',
+        color: '#AEC3D6',
+        fontWeight: 700,
+      }}
+    >
+      Cargando sección...
+    </div>
+  )
+}
+
 export default function App() {
   const [appMode, setAppMode] = useState('USER')
   const [viewMode, setViewMode] = useState('BOOKINGS')
@@ -217,6 +241,7 @@ export default function App() {
   const [weeklyEntries, setWeeklyEntries] = useState([])
   const [monthlyEntries, setMonthlyEntries] = useState([])
   const [bookings, setBookings] = useState([])
+  const [bookingAvailability, setBookingAvailability] = useState([])
   const [dataSyncMessage, setDataSyncMessage] = useState('')
 
   const [generalGame, setGeneralGame] = useState('TODOS')
@@ -268,6 +293,7 @@ export default function App() {
   const [lapEditMessage, setLapEditMessage] = useState('')
 
   const loadAllRef = useRef(null)
+  const loadBookingsRef = useRef(null)
   const loadWeeklyChallengeRef = useRef(null)
   const loadMonthlyChallengeRef = useRef(null)
   const cancelEditBookingRef = useRef(null)
@@ -275,6 +301,7 @@ export default function App() {
   const adminAuthSyncIdRef = useRef(0)
 
   loadAllRef.current = loadAll
+  loadBookingsRef.current = loadBookings
   loadWeeklyChallengeRef.current = loadWeeklyChallenge
   loadMonthlyChallengeRef.current = loadMonthlyChallenge
   cancelEditBookingRef.current = cancelEditBooking
@@ -283,6 +310,11 @@ export default function App() {
   useEffect(() => {
     loadAllRef.current?.()
   }, [])
+
+  useEffect(() => {
+    if (!isAdmin) return
+    void loadBookingsRef.current?.()
+  }, [isAdmin])
 
   useEffect(() => {
     let isMounted = true
@@ -370,12 +402,18 @@ export default function App() {
 
   async function loadAll() {
     setDataSyncMessage('')
-    await Promise.all([
+    const loaders = [
       loadLapTimes(),
       loadWeeklyChallenge(),
       loadMonthlyChallenge(),
-      loadBookings(),
-    ])
+      loadBookingAvailability(),
+    ]
+
+    if (isAdmin) {
+      loaders.push(loadBookings())
+    }
+
+    await Promise.all(loaders)
   }
 
   async function loadLapTimes() {
@@ -475,6 +513,45 @@ export default function App() {
     return data || []
   }
 
+  async function loadBookingAvailability() {
+    const { data, error } = await listBookingAvailability({ supabase })
+
+    if (error) {
+      console.log('booking availability error:', error)
+      return []
+    }
+
+    setBookingAvailability(data || [])
+    return data || []
+  }
+
+  async function loadBookingAvailabilityByDate(dateValue) {
+    const { data, error } = await listBookingAvailabilityByDate({ supabase, dateValue })
+
+    if (error) {
+      console.log('booking availability by date error:', error)
+      return null
+    }
+
+    return data || []
+  }
+
+  async function refreshBookingData(options = {}) {
+    const includeAdmin = options.includeAdmin ?? isAdmin
+
+    if (!includeAdmin) {
+      await loadBookingAvailability()
+      return []
+    }
+
+    const [adminRows] = await Promise.all([
+      loadBookings(),
+      loadBookingAvailability(),
+    ])
+
+    return adminRows
+  }
+
   const normalizedLapTimes = useMemo(() => {
     return lapTimes.map((row) => ({
       ...row,
@@ -504,6 +581,7 @@ export default function App() {
   const monthlyLeaderboard = useMemo(() => buildChallengeLeaderboard(monthlyEntries), [monthlyEntries])
 
   const pointsLeaderboard = useMemo(() => {
+    const bookingsForPoints = isAdmin ? bookings : []
     const scoreboard = {}
 
     function add(player, pts, reason) {
@@ -562,14 +640,14 @@ export default function App() {
       if (e.position === 3) add(e.player, 1, '🥉 MENSUAL')
     })
 
-    bookings.forEach((booking) => {
+    bookingsForPoints.forEach((booking) => {
       add(booking.client, 7, `RESERVA ${formatDateChile(booking.booking_date)}`)
     })
 
     return Object.values(scoreboard)
       .sort((a, b) => b.points - a.points || a.player.localeCompare(b.player))
       .map((e, i) => ({ ...e, position: i + 1 }))
-  }, [normalizedLapTimes, weeklyEntries, monthlyEntries, weeklyLeaderboard, monthlyLeaderboard, bookings])
+  }, [normalizedLapTimes, weeklyEntries, monthlyEntries, weeklyLeaderboard, monthlyLeaderboard, bookings, isAdmin])
 
   const groupedGeneralSections = useMemo(() => {
     const rows = normalizedLapTimes.filter((row) => {
@@ -638,10 +716,15 @@ export default function App() {
     )
   }, [editingBookingId, editingBookingSnapshot, bookingDate, bookingTime, bookingConfig, bookingDuration])
 
+  const bookingValidationRows = useMemo(() => {
+    if (isAdmin || editingBookingId) return bookings
+    return bookingAvailability
+  }, [isAdmin, editingBookingId, bookings, bookingAvailability])
+
   const availableTimeOptions = useMemo(() => {
     return getVisibleBookingTimeOptions({
       timeOptions: TIME_OPTIONS,
-      bookings,
+      bookings: bookingValidationRows,
       bookingDate,
       bookingConfig,
       bookingDuration,
@@ -649,7 +732,7 @@ export default function App() {
       isAdmin,
       preserveSlot: isAdmin && editingMatchesSnapshot ? bookingTime : '',
     })
-  }, [bookings, bookingDate, bookingConfig, bookingDuration, editingBookingId, isAdmin, editingMatchesSnapshot, bookingTime])
+  }, [bookingValidationRows, bookingDate, bookingConfig, bookingDuration, editingBookingId, isAdmin, editingMatchesSnapshot, bookingTime])
 
   const editingCurrentSelectionAvailable = useMemo(() => {
     if (!editingBookingId || !bookingDate || !bookingTime) return true
@@ -659,8 +742,8 @@ export default function App() {
       booking_time: bookingTime,
       duration: Number(bookingDuration),
       simulator_config_id: bookingConfig,
-    }, bookings, editingBookingId)
-  }, [bookings, bookingDate, bookingTime, bookingConfig, bookingDuration, editingBookingId])
+    }, bookingValidationRows, editingBookingId)
+  }, [bookingValidationRows, bookingDate, bookingTime, bookingConfig, bookingDuration, editingBookingId])
 
   const editingConflictWarning = useMemo(() => {
     if (!editingBookingId || !editingMatchesSnapshot) return ''
@@ -680,7 +763,7 @@ export default function App() {
 
     return getNearestBookingDateSuggestions({
       timeOptions: TIME_OPTIONS,
-      bookings,
+      bookings: bookingValidationRows,
       bookingDate,
       bookingConfig,
       bookingDuration,
@@ -689,7 +772,7 @@ export default function App() {
       maxDays: 14,
       maxSuggestions: 4,
     })
-  }, [availableTimeOptions, bookingConfig, bookingDate, bookingDuration, bookings, editingBookingId, isAdmin])
+  }, [availableTimeOptions, bookingConfig, bookingDate, bookingDuration, bookingValidationRows, editingBookingId, isAdmin])
 
   useEffect(() => {
     if (editingMatchesSnapshot && editingBookingId && bookingTime) return
@@ -1247,6 +1330,16 @@ export default function App() {
     })
   }
 
+  function syncBookingAvailabilityForDate(dateValue, rows = []) {
+    const targetDate = String(dateValue || '')
+    if (!targetDate) return
+
+    setBookingAvailability((current) => {
+      const withoutDate = current.filter((item) => String(item?.booking_date || '') !== targetDate)
+      return [...withoutDate, ...(rows || [])]
+    })
+  }
+
   function applyBookingToForm(booking) {
     const configKey = getBookingOptionKeyFromBooking(booking)
 
@@ -1285,7 +1378,7 @@ export default function App() {
         if (editingBookingId === booking.id) cancelEditBooking('system')
         clearBookingSuccessSummary()
         clearBookingCommercialContext()
-        await loadBookings()
+        await refreshBookingData({ includeAdmin: true })
         setBookingMessage('La reserva ya no existe o fue eliminada.')
         return
       }
@@ -1479,7 +1572,7 @@ export default function App() {
       })
       const selectedConfig = BOOKING_OPTIONS[draftPayload.simulator_config_id] || BOOKING_OPTIONS[bookingConfig]
 
-      const localValidation = validateFinalBooking(draftPayload, bookings, editingBookingId, { allowPast: isAdmin })
+      const localValidation = validateFinalBooking(draftPayload, bookingValidationRows, editingBookingId, { allowPast: isAdmin })
 
       if (!localValidation.valid) {
         if (localValidation.conflicts.length > 0) {
@@ -1515,7 +1608,14 @@ export default function App() {
         return
       }
 
-      const freshBookings = await loadBookingsByDate(draftPayload.booking_date)
+      const loadLiveBookingsByDate = (isAdmin || editingBookingId)
+        ? loadBookingsByDate
+        : loadBookingAvailabilityByDate
+      const syncLiveBookingsForDate = (isAdmin || editingBookingId)
+        ? syncBookingsForDate
+        : syncBookingAvailabilityForDate
+
+      const freshBookings = await loadLiveBookingsByDate(draftPayload.booking_date)
 
       if (freshBookings === null) {
         await persistSubmitAttempt(draftPayload, {
@@ -1529,7 +1629,7 @@ export default function App() {
       const liveValidation = validateFinalBooking(draftPayload, freshBookings, editingBookingId, { allowPast: isAdmin })
 
       if (!liveValidation.valid) {
-        syncBookingsForDate(draftPayload.booking_date, freshBookings)
+        syncLiveBookingsForDate(draftPayload.booking_date, freshBookings)
         await persistSubmitAttempt(draftPayload, {
           attempt_status: 'failed',
           reason: liveValidation.conflicts.length > 0 ? 'live_conflict' : 'live_validation_error',
@@ -1579,7 +1679,7 @@ export default function App() {
 
         if (updateResult.status === 'missing') {
           cancelEditBooking('system')
-          await loadBookings()
+          await refreshBookingData({ includeAdmin: true })
           await persistSubmitAttempt(draftPayload, {
             attempt_status: 'failed',
             reason: 'update_missing_before_save',
@@ -1627,6 +1727,7 @@ export default function App() {
             attempt_status: 'failed',
             reason: 'update_revalidation_unavailable',
           })
+          await refreshBookingData({ includeAdmin: true })
           setBookingMessage('La reserva se actualizó, pero no se pudo revalidar el horario')
           return
         }
@@ -1665,7 +1766,7 @@ export default function App() {
           return
         }
 
-        await loadBookings()
+        await refreshBookingData({ includeAdmin: true })
         await persistSubmitAttempt(draftPayload, {
           booking_id: updateResult.updatedBooking?.id ?? editingBookingId,
           attempt_status: 'confirmed',
@@ -1682,8 +1783,8 @@ export default function App() {
         draftPayload,
         isAdmin,
         validateFinalBooking,
-        loadBookingsByDate,
-        syncBookingsForDate,
+        loadBookingsByDate: loadLiveBookingsByDate,
+        syncBookingsForDate: syncLiveBookingsForDate,
       })
 
       if (createResult.status === 'invalid_payload') {
@@ -1713,7 +1814,7 @@ export default function App() {
           reason: 'create_revalidation_unavailable',
         })
         setBookingMessage('La reserva se guardó, pero no se pudo revalidar el horario')
-        await loadBookings()
+        await refreshBookingData({ includeAdmin: isAdmin })
         return
       }
 
@@ -1736,7 +1837,7 @@ export default function App() {
         return
       }
 
-      await loadBookings()
+      await refreshBookingData({ includeAdmin: isAdmin })
       const bookingSummary = {
         client: draftPayload.client,
         phone: draftPayload.phone,
@@ -1823,7 +1924,7 @@ export default function App() {
         if (editingBookingId === id) cancelEditBooking('system')
         clearBookingSuccessSummary()
         clearBookingCommercialContext()
-        await loadBookings()
+        await refreshBookingData({ includeAdmin: true })
         setBookingMessage('La reserva ya había sido eliminada.')
         return
       }
@@ -1876,6 +1977,7 @@ export default function App() {
         reason: 'deleted',
       }, deletedBooking)
 
+      await refreshBookingData({ includeAdmin: true })
       if (editingBookingId === id) cancelEditBooking('system')
       clearBookingSuccessSummary()
       clearBookingCommercialContext()
@@ -2029,50 +2131,207 @@ export default function App() {
         {dataSyncMessage ? <div style={{ ...messageStyle, marginBottom: 12 }}>{dataSyncMessage}</div> : null}
 
         {viewMode === 'GENERAL' && (
-          <>
-            <LapTimeEditorSection
+          <Suspense fallback={<SectionLoadingFallback />}>
+            <>
+              <LapTimeEditorSection
+                isAdmin={isAdmin}
+                lapEditId={lapEditId}
+                lapEditPlayer={lapEditPlayer}
+                setLapEditPlayer={setLapEditPlayer}
+                lapEditCountry={lapEditCountry}
+                setLapEditCountry={setLapEditCountry}
+                lapEditGame={lapEditGame}
+                setLapEditGame={setLapEditGame}
+                lapEditTrack={lapEditTrack}
+                setLapEditTrack={setLapEditTrack}
+                lapEditCar={lapEditCar}
+                setLapEditCar={setLapEditCar}
+                lapEditTime={lapEditTime}
+                setLapEditTime={setLapEditTime}
+                lapEditMessage={lapEditMessage}
+                createOrUpdateLapTime={createOrUpdateLapTime}
+                isEditingLapTime={Boolean(lapEditId)}
+                cancelEditLapTime={cancelEditLapTime}
+                normalizeText={normalizeText}
+                card={card}
+                sectionTitle={sectionTitle}
+                formGrid={formGrid}
+                input={input}
+                buttonRow={buttonRow}
+                button={button}
+                buttonSecondary={buttonSecondary}
+                messageStyle={messageStyle}
+              />
+
+              <GeneralRankingSection
+                groupedRanking={groupedGeneralSections.map((section) => ({ ...section, entries: section.rows }))}
+                selectedGame={generalGame}
+                setSelectedGame={setGeneralGame}
+                selectedTrack={generalTrack}
+                setSelectedTrack={setGeneralTrack}
+                selectedPilot={generalSearch}
+                setSelectedPilot={setGeneralSearch}
+                generalGames={generalGames}
+                generalTracks={generalTracks}
+                isAdmin={isAdmin}
+                startEditLapTime={startEditLapTime}
+                deleteLapTime={deleteLapTime}
+                card={card}
+                sectionTitle={sectionTitle}
+                formGrid={formGrid}
+                input={input}
+                line={line}
+                tableWrap={tableWrap}
+                table={table}
+                th={th}
+                td={td}
+                buttonRowSmall={buttonRowSmall}
+                miniButton={miniButton}
+                miniDanger={miniDanger}
+              />
+            </>
+          </Suspense>
+        )}
+
+        {viewMode === 'WEEKLY' && (
+          <Suspense fallback={<SectionLoadingFallback />}>
+            <ChallengeSection
+              challenge={weeklyChallenge}
+              leaderboard={weeklyLeaderboard}
+              type="weekly"
               isAdmin={isAdmin}
-              lapEditId={lapEditId}
-              lapEditPlayer={lapEditPlayer}
-              setLapEditPlayer={setLapEditPlayer}
-              lapEditCountry={lapEditCountry}
-              setLapEditCountry={setLapEditCountry}
-              lapEditGame={lapEditGame}
-              setLapEditGame={setLapEditGame}
-              lapEditTrack={lapEditTrack}
-              setLapEditTrack={setLapEditTrack}
-              lapEditCar={lapEditCar}
-              setLapEditCar={setLapEditCar}
-              lapEditTime={lapEditTime}
-              setLapEditTime={setLapEditTime}
-              lapEditMessage={lapEditMessage}
-              createOrUpdateLapTime={createOrUpdateLapTime}
-              isEditingLapTime={Boolean(lapEditId)}
-              cancelEditLapTime={cancelEditLapTime}
+              playerValue={weeklyPlayer}
+              setPlayerValue={setWeeklyPlayer}
+              timeValue={weeklyTime}
+              setTimeValue={setWeeklyTime}
+              messageValue={weeklyMessage}
+              editingEntryId={editingWeeklyEntryId}
+              onSubmit={() => submitChallengeTime('weekly')}
+              onCancelEdit={cancelEditWeeklyEntry}
+              onEditEntry={startEditWeeklyEntry}
+              onDeleteEntry={deleteWeeklyEntry}
+              onDeleteChallenge={() => deleteActiveChallenge('weekly')}
+              createGameValue={weeklyChallengeGame}
+              setCreateGameValue={setWeeklyChallengeGame}
+              createTrackValue={weeklyChallengeTrack}
+              setCreateTrackValue={setWeeklyChallengeTrack}
+              createCarValue={weeklyChallengeCar}
+              setCreateCarValue={setWeeklyChallengeCar}
+              createEndAtValue={weeklyChallengeEndAt}
+              setCreateEndAtValue={setWeeklyChallengeEndAt}
+              onCreateChallenge={() => createChallenge('weekly')}
               normalizeText={normalizeText}
               card={card}
               sectionTitle={sectionTitle}
               formGrid={formGrid}
               input={input}
+              line={line}
               buttonRow={buttonRow}
               button={button}
               buttonSecondary={buttonSecondary}
               messageStyle={messageStyle}
+              tableWrap={tableWrap}
+              table={table}
+              th={th}
+              td={td}
+              buttonRowSmall={buttonRowSmall}
+              miniButton={miniButton}
+              miniDanger={miniDanger}
             />
+          </Suspense>
+        )}
 
-            <GeneralRankingSection
-              groupedRanking={groupedGeneralSections.map((section) => ({ ...section, entries: section.rows }))}
-              selectedGame={generalGame}
-              setSelectedGame={setGeneralGame}
-              selectedTrack={generalTrack}
-              setSelectedTrack={setGeneralTrack}
-              selectedPilot={generalSearch}
-              setSelectedPilot={setGeneralSearch}
-              generalGames={generalGames}
-              generalTracks={generalTracks}
+        {viewMode === 'MONTHLY' && (
+          <Suspense fallback={<SectionLoadingFallback />}>
+            <ChallengeSection
+              challenge={monthlyChallenge}
+              leaderboard={monthlyLeaderboard}
+              type="monthly"
               isAdmin={isAdmin}
-              startEditLapTime={startEditLapTime}
-              deleteLapTime={deleteLapTime}
+              playerValue={monthlyPlayer}
+              setPlayerValue={setMonthlyPlayer}
+              timeValue={monthlyTime}
+              setTimeValue={setMonthlyTime}
+              messageValue={monthlyMessage}
+              editingEntryId={editingMonthlyEntryId}
+              onSubmit={() => submitChallengeTime('monthly')}
+              onCancelEdit={cancelEditMonthlyEntry}
+              onEditEntry={startEditMonthlyEntry}
+              onDeleteEntry={deleteMonthlyEntry}
+              onDeleteChallenge={() => deleteActiveChallenge('monthly')}
+              createGameValue={monthlyChallengeGame}
+              setCreateGameValue={setMonthlyChallengeGame}
+              createTrackValue={monthlyChallengeTrack}
+              setCreateTrackValue={setMonthlyChallengeTrack}
+              createCarValue={monthlyChallengeCar}
+              setCreateCarValue={setMonthlyChallengeCar}
+              createEndAtValue={monthlyChallengeEndAt}
+              setCreateEndAtValue={setMonthlyChallengeEndAt}
+              onCreateChallenge={() => createChallenge('monthly')}
+              normalizeText={normalizeText}
+              card={card}
+              sectionTitle={sectionTitle}
+              formGrid={formGrid}
+              input={input}
+              line={line}
+              buttonRow={buttonRow}
+              button={button}
+              buttonSecondary={buttonSecondary}
+              messageStyle={messageStyle}
+              tableWrap={tableWrap}
+              table={table}
+              th={th}
+              td={td}
+              buttonRowSmall={buttonRowSmall}
+              miniButton={miniButton}
+              miniDanger={miniDanger}
+            />
+          </Suspense>
+        )}
+
+        {viewMode === 'POINTS' && (
+          <Suspense fallback={<SectionLoadingFallback />}>
+            <PointsSection
+              pointsLeaderboard={pointsLeaderboard}
+              card={card}
+              sectionTitle={sectionTitle}
+              line={line}
+              tableWrap={tableWrap}
+              table={table}
+              th={th}
+              td={td}
+            />
+          </Suspense>
+        )}
+
+
+        {viewMode === 'COMMERCIAL' && (
+          <Suspense fallback={<SectionLoadingFallback />}>
+            <CommercialSection
+              setActiveTab={(nextTab) => {
+                if (nextTab === 'reservas') {
+                  setViewMode('BOOKINGS')
+                  return
+                }
+                setViewMode(nextTab)
+              }}
+              onCommercialReserve={(prefill) => {
+                setViewMode('BOOKINGS')
+                applyCommercialPrefill(prefill)
+              }}
+            />
+          </Suspense>
+        )}
+
+
+        {viewMode === 'PROFILE' && (
+          <Suspense fallback={<SectionLoadingFallback />}>
+            <PilotProfileSection
+              lapTimes={normalizedLapTimes}
+              bookings={isAdmin ? bookings : []}
+              pointsLeaderboard={pointsLeaderboard}
+              normalizeText={normalizeText}
+              formatDateChile={formatDateChile}
               card={card}
               sectionTitle={sectionTitle}
               formGrid={formGrid}
@@ -2082,157 +2341,16 @@ export default function App() {
               table={table}
               th={th}
               td={td}
-              buttonRowSmall={buttonRowSmall}
-              miniButton={miniButton}
-              miniDanger={miniDanger}
             />
-          </>
-        )}
-
-        {viewMode === 'WEEKLY' && (
-          <ChallengeSection
-            challenge={weeklyChallenge}
-            leaderboard={weeklyLeaderboard}
-            type="weekly"
-            isAdmin={isAdmin}
-            playerValue={weeklyPlayer}
-            setPlayerValue={setWeeklyPlayer}
-            timeValue={weeklyTime}
-            setTimeValue={setWeeklyTime}
-            messageValue={weeklyMessage}
-            editingEntryId={editingWeeklyEntryId}
-            onSubmit={() => submitChallengeTime('weekly')}
-            onCancelEdit={cancelEditWeeklyEntry}
-            onEditEntry={startEditWeeklyEntry}
-            onDeleteEntry={deleteWeeklyEntry}
-            onDeleteChallenge={() => deleteActiveChallenge('weekly')}
-            createGameValue={weeklyChallengeGame}
-            setCreateGameValue={setWeeklyChallengeGame}
-            createTrackValue={weeklyChallengeTrack}
-            setCreateTrackValue={setWeeklyChallengeTrack}
-            createCarValue={weeklyChallengeCar}
-            setCreateCarValue={setWeeklyChallengeCar}
-            createEndAtValue={weeklyChallengeEndAt}
-            setCreateEndAtValue={setWeeklyChallengeEndAt}
-            onCreateChallenge={() => createChallenge('weekly')}
-            normalizeText={normalizeText}
-            card={card}
-            sectionTitle={sectionTitle}
-            formGrid={formGrid}
-            input={input}
-            line={line}
-            buttonRow={buttonRow}
-            button={button}
-            buttonSecondary={buttonSecondary}
-            messageStyle={messageStyle}
-            tableWrap={tableWrap}
-            table={table}
-            th={th}
-            td={td}
-            buttonRowSmall={buttonRowSmall}
-            miniButton={miniButton}
-            miniDanger={miniDanger}
-          />
-        )}
-
-        {viewMode === 'MONTHLY' && (
-          <ChallengeSection
-            challenge={monthlyChallenge}
-            leaderboard={monthlyLeaderboard}
-            type="monthly"
-            isAdmin={isAdmin}
-            playerValue={monthlyPlayer}
-            setPlayerValue={setMonthlyPlayer}
-            timeValue={monthlyTime}
-            setTimeValue={setMonthlyTime}
-            messageValue={monthlyMessage}
-            editingEntryId={editingMonthlyEntryId}
-            onSubmit={() => submitChallengeTime('monthly')}
-            onCancelEdit={cancelEditMonthlyEntry}
-            onEditEntry={startEditMonthlyEntry}
-            onDeleteEntry={deleteMonthlyEntry}
-            onDeleteChallenge={() => deleteActiveChallenge('monthly')}
-            createGameValue={monthlyChallengeGame}
-            setCreateGameValue={setMonthlyChallengeGame}
-            createTrackValue={monthlyChallengeTrack}
-            setCreateTrackValue={setMonthlyChallengeTrack}
-            createCarValue={monthlyChallengeCar}
-            setCreateCarValue={setMonthlyChallengeCar}
-            createEndAtValue={monthlyChallengeEndAt}
-            setCreateEndAtValue={setMonthlyChallengeEndAt}
-            onCreateChallenge={() => createChallenge('monthly')}
-            normalizeText={normalizeText}
-            card={card}
-            sectionTitle={sectionTitle}
-            formGrid={formGrid}
-            input={input}
-            line={line}
-            buttonRow={buttonRow}
-            button={button}
-            buttonSecondary={buttonSecondary}
-            messageStyle={messageStyle}
-            tableWrap={tableWrap}
-            table={table}
-            th={th}
-            td={td}
-            buttonRowSmall={buttonRowSmall}
-            miniButton={miniButton}
-            miniDanger={miniDanger}
-          />
-        )}
-
-        {viewMode === 'POINTS' && (
-          <PointsSection
-            pointsLeaderboard={pointsLeaderboard}
-            card={card}
-            sectionTitle={sectionTitle}
-            line={line}
-            tableWrap={tableWrap}
-            table={table}
-            th={th}
-            td={td}
-          />
+          </Suspense>
         )}
 
 
-        {viewMode === 'COMMERCIAL' && (
-          <CommercialSection
-            setActiveTab={(nextTab) => {
-              if (nextTab === 'reservas') {
-                setViewMode('BOOKINGS')
-                return
-              }
-              setViewMode(nextTab)
-            }}
-            onCommercialReserve={(prefill) => {
-              setViewMode('BOOKINGS')
-              applyCommercialPrefill(prefill)
-            }}
-          />
+        {viewMode === 'FORUM' && (
+          <Suspense fallback={<SectionLoadingFallback />}>
+            <ForumSection isAdmin={isAdmin} />
+          </Suspense>
         )}
-
-
-        {viewMode === 'PROFILE' && (
-          <PilotProfileSection
-            lapTimes={normalizedLapTimes}
-            bookings={bookings}
-            pointsLeaderboard={pointsLeaderboard}
-            normalizeText={normalizeText}
-            formatDateChile={formatDateChile}
-            card={card}
-            sectionTitle={sectionTitle}
-            formGrid={formGrid}
-            input={input}
-            line={line}
-            tableWrap={tableWrap}
-            table={table}
-            th={th}
-            td={td}
-          />
-        )}
-
-
-        {viewMode === 'FORUM' && <ForumSection isAdmin={isAdmin} />}
 
         {viewMode === 'ADMIN' && (
           <div
@@ -2284,7 +2402,9 @@ export default function App() {
                   <button style={button} onClick={() => setViewMode('BOOKINGS')}>Ir a reservas</button>
                   <button style={buttonSecondary} onClick={exitAdminMode}>Salir de admin</button>
                 </div>
-                <BookingInsightsSection />
+                <Suspense fallback={<SectionLoadingFallback />}>
+                  <BookingInsightsSection />
+                </Suspense>
               </>
             )}
           </div>

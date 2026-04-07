@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react'
+
 const primaryTabs = [
   { key: 'BOOKINGS', label: 'Reservas', icon: '📅' },
   { key: 'GENERAL', label: 'Ranking', icon: '🏎️' },
@@ -45,6 +47,21 @@ export default function MainTabsNav({
   onOpenAdmin,
   onExitAdmin,
 }) {
+  const [isCompactViewport, setIsCompactViewport] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.innerWidth <= 420
+  })
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+
+    const syncViewport = () => setIsCompactViewport(window.innerWidth <= 420)
+    syncViewport()
+    window.addEventListener('resize', syncViewport)
+
+    return () => window.removeEventListener('resize', syncViewport)
+  }, [])
+
   const activePrimary = primaryTabs.some((tab) => tab.key === viewMode) ? viewMode : null
   const isMoreActive = communityTabs.some((tab) => tab.key === viewMode) || viewMode === adminTab.key || isAdmin
 
@@ -95,15 +112,15 @@ export default function MainTabsNav({
           style={{
             position: 'fixed',
             left: '50%',
-            bottom: 96,
+            bottom: isCompactViewport ? 88 : 96,
             transform: 'translateX(-50%)',
-            width: 'min(92vw, 520px)',
+            width: isCompactViewport ? 'min(96vw, 420px)' : 'min(92vw, 520px)',
             zIndex: 80,
             borderRadius: 22,
             border: '1px solid rgba(255,255,255,0.12)',
             background: 'linear-gradient(180deg, rgba(8,20,32,0.98) 0%, rgba(6,12,22,0.98) 100%)',
             boxShadow: '0 24px 60px rgba(0,0,0,0.45)',
-            padding: 16,
+            padding: isCompactViewport ? 12 : 16,
           }}
         >
           <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4, color: '#FFFFFF' }}>Más secciones</div>
@@ -181,18 +198,18 @@ export default function MainTabsNav({
         style={{
           position: 'fixed',
           left: '50%',
-          bottom: 14,
+          bottom: isCompactViewport ? 8 : 14,
           transform: 'translateX(-50%)',
-          width: 'min(94vw, 560px)',
+          width: isCompactViewport ? 'min(98vw, 420px)' : 'min(94vw, 560px)',
           zIndex: 81,
           borderRadius: 22,
           border: '1px solid rgba(255,255,255,0.10)',
           background: 'linear-gradient(180deg, rgba(8,20,32,0.98) 0%, rgba(6,12,22,0.98) 100%)',
           boxShadow: '0 20px 48px rgba(0,0,0,0.45)',
-          padding: 10,
+          padding: isCompactViewport ? 8 : 10,
         }}
       >
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: isCompactViewport ? 6 : 8 }}>
           {primaryTabs.map((item) => (
             <button
               key={item.key}

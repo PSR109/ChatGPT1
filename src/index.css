@@ -19,16 +19,22 @@
 html {
   background: #061018;
   scroll-behavior: smooth;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body {
   margin: 0;
   min-width: 320px;
+  width: 100%;
+  max-width: 100%;
   background:
     radial-gradient(circle at top, rgba(41, 129, 243, 0.16), transparent 24%),
     radial-gradient(circle at 88% 14%, rgba(14, 44, 64, 0.34), transparent 20%),
     linear-gradient(180deg, #061018 0%, #081521 100%);
   overscroll-behavior-y: contain;
+  overflow-x: hidden;
 }
 
 body,
@@ -58,12 +64,14 @@ img {
 
 #root {
   width: 100%;
+  max-width: 100%;
   min-height: 100svh;
+  overflow-x: hidden;
 }
 
 @media (max-width: 768px) {
   body {
-    font-size: 15px;
+    font-size: 14px;
   }
 }
 
