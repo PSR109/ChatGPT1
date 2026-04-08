@@ -6,7 +6,7 @@ Estado operativo del endurecimiento aplicado antes del lanzamiento de Patagonia 
 
 - `bookings` ya no se lee públicamente.
 - La reserva pública usa `booking_availability`.
-- Admin sigue leyendo `bookings` completos.
+- Admin sigue leyendo, editando y eliminando `bookings` completos.
 - `commercial_leads` quedó sin `select/update/delete` público.
 - `points` quedó sin escritura pública.
 - `lap_times` quedó con `select` público y escritura solo admin autenticado.
@@ -50,6 +50,7 @@ Estado operativo del endurecimiento aplicado antes del lanzamiento de Patagonia 
 - Revisar si `Puntos` y `Perfil piloto` públicos necesitan una identidad pública separada para volver a mostrar actividad sin exponer nombres reales desde reservas.
 - Rotar credenciales de Supabase si el `.env` trackeado llegó a existir en un remoto o en historial compartido.
 - Reducir tamaño del bundle principal si se quiere optimizar carga móvil.
+- Confirmar que Vercel mantiene configuradas `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` en Production y Preview.
 
 ## Checklist post-deploy
 

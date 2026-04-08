@@ -32,6 +32,8 @@ drop policy if exists points_delete on public.points;
 drop policy if exists bookings_public_read on public.bookings;
 
 grant select on public.bookings to authenticated;
+grant update on public.bookings to authenticated;
+grant delete on public.bookings to authenticated;
 
 do $$
 begin
@@ -45,6 +47,35 @@ begin
     create policy bookings_admin_read
     on public.bookings
     for select
+    to authenticated
+    using (public.psr_is_admin());
+  end if;
+
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'bookings'
+      and policyname = 'bookings_admin_update'
+  ) then
+    create policy bookings_admin_update
+    on public.bookings
+    for update
+    to authenticated
+    using (public.psr_is_admin())
+    with check (public.psr_is_admin());
+  end if;
+
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'bookings'
+      and policyname = 'bookings_admin_delete'
+  ) then
+    create policy bookings_admin_delete
+    on public.bookings
+    for delete
     to authenticated
     using (public.psr_is_admin());
   end if;
