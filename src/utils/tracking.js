@@ -9,11 +9,11 @@
  * (cuenta a162931288) + Meta dataset "PSR Web Patagonia SimRacing" (business
  * 622521433632301). Son IDs de medición PÚBLICOS (van en el bundle de cualquier
  * sitio con píxel) — no son secretos. Una env VITE_* en Vercel los sobreescribe.
- * TikTok queda sin default hasta crear su píxel (verificación email pendiente).
+ * TikTok: píxel "PSR Web Patagonia SimRacing" (ads account 7501378064899719169).
  */
 
 const META_ID = import.meta.env.VITE_META_PIXEL_ID || '1736361921055510'
-const TIKTOK_ID = import.meta.env.VITE_TIKTOK_PIXEL_ID
+const TIKTOK_ID = import.meta.env.VITE_TIKTOK_PIXEL_ID || 'D8M6HEJC77U235SQNT20'
 const GA4_ID = import.meta.env.VITE_GA4_ID || 'G-DG56H908WW'
 
 function loadMetaPixel(id) {
