@@ -36,18 +36,49 @@ export default function LayoutHeader({ appMode, onAdminBadgeClick }) {
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'flex-end',
-        backgroundImage:
-          'linear-gradient(180deg, rgba(5,11,28,0.45) 0%, rgba(5,11,28,0.78) 62%, rgba(5,11,28,0.96) 100%), url(/media/hero.jpg)',
+        backgroundImage: 'url(/media/hero.jpg)',
         backgroundSize: 'cover',
         backgroundPosition: 'center 38%',
         padding: 22,
       }}
     >
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 6, background: '#1f6feb' }} />
+      {/* Video de acción en loop mudo (mobile-friendly). Poster = hero.jpg.
+          Se oculta con prefers-reduced-motion -> queda la foto de fondo. */}
+      <video
+        className="psr-hero-video"
+        autoPlay
+        muted
+        loop
+        playsInline
+        poster="/media/hero.jpg"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          objectPosition: 'center 38%',
+          zIndex: 0,
+        }}
+      >
+        <source src="/media/hero.mp4" type="video/mp4" />
+      </video>
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 1,
+          background:
+            'linear-gradient(180deg, rgba(5,11,28,0.45) 0%, rgba(5,11,28,0.78) 62%, rgba(5,11,28,0.96) 100%)',
+        }}
+      />
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 6, background: '#1f6feb', zIndex: 2 }} />
 
       {rec ? (
         <div
           style={{
+            position: 'relative',
+            zIndex: 2,
             alignSelf: 'flex-start',
             display: 'inline-flex',
             alignItems: 'center',
@@ -67,13 +98,13 @@ export default function LayoutHeader({ appMode, onAdminBadgeClick }) {
         </div>
       ) : null}
 
-      <h1 style={{ margin: 0, fontSize: 34, lineHeight: 1.08, fontWeight: 900, letterSpacing: '-0.01em' }}>
+      <h1 style={{ position: 'relative', zIndex: 2, margin: 0, fontSize: 34, lineHeight: 1.08, fontWeight: 900, letterSpacing: '-0.01em' }}>
         Patagonia SimRacing
       </h1>
-      <div style={{ marginTop: 6, fontSize: 22, fontWeight: 900, color: '#7cc4ff', lineHeight: 1.15 }}>
+      <div style={{ position: 'relative', zIndex: 2, marginTop: 6, fontSize: 22, fontWeight: 900, color: '#7cc4ff', lineHeight: 1.15 }}>
         El sur llueve. Tú aceleras.
       </div>
-      <p style={{ margin: '8px 0 0', fontSize: 15, color: 'rgba(255,255,255,0.86)', lineHeight: 1.5, maxWidth: 620 }}>
+      <p style={{ position: 'relative', zIndex: 2, margin: '8px 0 0', fontSize: 15, color: 'rgba(255,255,255,0.86)', lineHeight: 1.5, maxWidth: 620 }}>
         Simulador de carreras pro en Puerto Varas — esto no se arma en tu pieza.
       </p>
 
@@ -82,6 +113,8 @@ export default function LayoutHeader({ appMode, onAdminBadgeClick }) {
         target="_blank"
         rel="noreferrer"
         style={{
+          position: 'relative',
+          zIndex: 2,
           marginTop: 16,
           minHeight: 54,
           borderRadius: 16,
@@ -99,7 +132,7 @@ export default function LayoutHeader({ appMode, onAdminBadgeClick }) {
         Reserva tu vuelta por WhatsApp
       </a>
 
-      <style>{`@keyframes psrpulse {0%{box-shadow:0 0 0 0 rgba(34,197,94,0.6)}70%{box-shadow:0 0 0 10px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}`}</style>
+      <style>{`@keyframes psrpulse {0%{box-shadow:0 0 0 0 rgba(34,197,94,0.6)}70%{box-shadow:0 0 0 10px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}} @media (prefers-reduced-motion: reduce){.psr-hero-video{display:none}}`}</style>
 
       {appMode === 'ADMIN' ? (
         <button

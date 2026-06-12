@@ -6,6 +6,9 @@ import App from './App.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import MissingConfigScreen from './components/MissingConfigScreen.jsx'
 import { hasSupabaseConfig, supabaseConfigErrorMessage } from './db.js'
+import { initTracking } from './utils/tracking.js'
+
+initTracking()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

@@ -50,27 +50,31 @@ const sections = [
   },
   {
     eyebrow: 'Eventos y grupos',
-    title: 'Una opción simple para cumpleaños, celebraciones y salidas en grupo',
-    text: 'Si quieren hacer algo distinto y fácil de coordinar, esta opción funciona muy bien para grupos.',
+    title: 'Cumpleaños, celebraciones y salidas en grupo',
+    text: 'El panorama distinto que todos recuerdan. Competencia, ranking en vivo y momentos para grabar.',
     highlights: [
-      'Sirve para cumpleaños, celebraciones y panoramas grupales.',
-      'Se puede coordinar según cantidad de personas y tiempo disponible.',
-      'La experiencia es fácil de entender incluso si van personas muy distintas entre sí.',
+      'Grupos de 6 a 30 personas · 1 a 2 horas.',
+      'Hasta 3 simuladores rotando: corren en tandas de 3 y el resto compite por el récord del grupo.',
+      'Sin experiencia previa — se entiende y se disfruta desde la primera vuelta.',
+      'Cierre con podio: el ganador queda con su nombre en la tabla.',
     ],
-    button: 'Cotizar evento',
-    action: 'evento',
+    ficha: 'Formato flexible · Alto Varas 109, Puerto Varas · cotización por grupo según personas y duración.',
+    button: 'Cotizar evento por WhatsApp',
+    wa: 'evento',
   },
   {
     eyebrow: 'Empresas',
-    title: 'Una actividad distinta para equipos de trabajo',
-    text: 'Si buscan una experiencia más entretenida que una actividad típica, aquí pueden coordinar algo claro y fácil de organizar.',
+    title: 'Team building con ranking en vivo',
+    text: 'Una actividad de equipo distinta a las de siempre: competitiva, fácil de coordinar y muy compartible.',
     highlights: [
-      'Buena opción para team building y actividades de equipo.',
-      'Se puede conversar formato, duración y disponibilidad.',
-      'Es una experiencia competitiva, entretenida y fácil de entender.',
+      'Equipos de 10 a 30 personas · 1 a 2 horas.',
+      'Hasta 3 simuladores rotando en heats: mientras 3 corren, el resto compite en pantalla por el récord del equipo.',
+      'Ideal para clima laboral, clientes o partners — funciona aunque nadie tenga experiencia.',
+      'Cierre con podio y récord del equipo (trofeo simbólico, sin premio material).',
     ],
-    button: 'Cotizar empresa',
-    action: 'empresa',
+    ficha: 'Días L-V (ideal horario laboral) · cotización por grupo según personas y duración · boleta/factura disponible.',
+    button: 'Cotizar empresa por WhatsApp',
+    wa: 'empresa',
   },
   {
     eyebrow: 'Práctica de manejo',
@@ -344,9 +348,26 @@ export default function CommercialSection({ setActiveTab, onCommercialReserve })
                 ))}
               </div>
 
-              <button onClick={() => handleAction(item.action)} style={index === 0 ? buttonPrimary : buttonSecondary}>
-                {item.button}
-              </button>
+              {item.ficha ? (
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.62)', textAlign: 'center', lineHeight: 1.45 }}>
+                  {item.ficha}
+                </div>
+              ) : null}
+
+              {item.wa ? (
+                <a
+                  href={buildCommercialWhatsappLink(item.wa)}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ ...buttonPrimary, textDecoration: 'none' }}
+                >
+                  {item.button}
+                </a>
+              ) : (
+                <button onClick={() => handleAction(item.action)} style={index === 0 ? buttonPrimary : buttonSecondary}>
+                  {item.button}
+                </button>
+              )}
             </div>
           ))}
         </div>
