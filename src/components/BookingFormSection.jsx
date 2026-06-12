@@ -3,7 +3,7 @@ import AdminTextInput from './AdminTextInput'
 import PrimarySecondaryActions from './PrimarySecondaryActions'
 import StatusMessage from './StatusMessage'
 import { normalizeTextInput } from '../utils/psrUtils'
-import { PSR_EMAIL, buildBookingWhatsappLink, buildBusinessEmailLink } from '../utils/whatsappHelper'
+import { buildBookingWhatsappLink, buildBusinessWhatsappLink } from '../utils/whatsappHelper'
 
 const DURATION_OPTIONS = [30, 60, 90, 120, 150, 180]
 
@@ -315,7 +315,7 @@ export default function BookingFormSection(props) {
   const timeOptions = hasAvailableTimes ? availableTimeOptions : ['']
   const selectedKind = kindCards[bookingKind] || kindCards.LOCAL
   const selectedConfigLabel = getConfigLabel(bookingConfig, BOOKING_OPTIONS)
-  const businessMailto = useMemo(() => buildBusinessEmailLink({
+  const businessMailto = useMemo(() => buildBusinessWhatsappLink({
     client: bookingClient,
     phone: bookingPhone,
     date: bookingDate,
@@ -326,7 +326,7 @@ export default function BookingFormSection(props) {
   }), [bookingClient, bookingPhone, bookingDate, bookingTime, bookingKind, selectedConfigLabel, bookingDuration])
   const isBusinessBooking = bookingKind === 'EVENTO' || bookingKind === 'EMPRESA'
   const successIsBusinessBooking = bookingSuccessSummary?.kind === 'EVENTO' || bookingSuccessSummary?.kind === 'EMPRESA'
-  const successContactLink = bookingSuccessSummary?.contactLink || (successIsBusinessBooking ? buildBusinessEmailLink({
+  const successContactLink = bookingSuccessSummary?.contactLink || (successIsBusinessBooking ? buildBusinessWhatsappLink({
     client: bookingSuccessSummary?.client,
     phone: bookingSuccessSummary?.phone,
     date: bookingSuccessSummary?.date,
@@ -407,7 +407,7 @@ export default function BookingFormSection(props) {
             <h2 style={heroTitleStyle}>Reserva confirmada ✅</h2>
             <p style={heroSubtitleStyle}>
               {successIsBusinessBooking
-                ? 'Tu solicitud quedó registrada. Para eventos y empresas, el siguiente paso es escribirnos por correo para definir requerimientos.'
+                ? 'Tu solicitud quedó registrada. Para eventos y empresas, el siguiente paso es escribirnos por WhatsApp para definir requerimientos.'
                 : 'Tu reserva quedó registrada. Te esperamos en PSR. Si quieres acelerar la confirmación, puedes escribirnos por WhatsApp ahora.'}
             </p>
           </div>
@@ -496,7 +496,7 @@ export default function BookingFormSection(props) {
             }}
           >
             {successIsBusinessBooking
-              ? 'Tu solicitud ya quedó registrada. Escríbenos por correo y definimos requerimientos, formato y disponibilidad.'
+              ? 'Tu solicitud ya quedó registrada. Escríbenos por WhatsApp y definimos requerimientos, formato y disponibilidad.'
               : 'Tu reserva ya quedó registrada. WhatsApp sirve para confirmar más rápido o pedir una alternativa cercana.'}
           </div>
 
@@ -515,7 +515,7 @@ export default function BookingFormSection(props) {
                 boxSizing: 'border-box',
               }}
             >
-              {successIsBusinessBooking ? 'Escribir por correo' : 'Confirmar más rápido por WhatsApp'}
+              {successIsBusinessBooking ? 'Escribir por WhatsApp' : 'Confirmar más rápido por WhatsApp'}
             </a>
             <button
               type="button"
@@ -630,6 +630,9 @@ export default function BookingFormSection(props) {
 
           <div style={{ display: 'grid', gap: 10 }}>
             <p style={sectionLabelStyle}>Configuración</p>
+            <p style={{ ...helperTextStyle, color: '#AEC3D6', marginTop: -4 }}>
+              ¿Primera vez? Parte con <strong>1 ESTÁNDAR</strong>. El <strong>PRO</strong> trae volante Direct Drive más fuerte y realista, como auto de verdad.
+            </p>
             <div style={chipGridStyle}>
               {configOptions.map((configKey) => {
                 const active = bookingConfig === configKey
@@ -705,10 +708,12 @@ export default function BookingFormSection(props) {
                   {isBusinessBooking ? (
                   <a
                     href={businessMailto}
-                    title={`Escribir a ${PSR_EMAIL}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="Escríbenos por WhatsApp"
                     style={businessRequirementLinkStyle}
                   >
-                    Escríbenos para definir tus requerimientos
+                    Escríbenos por WhatsApp para definir tus requerimientos
                   </a>
                 ) : formatPrice(totalBooking)}
                 </div>
@@ -838,7 +843,7 @@ export default function BookingFormSection(props) {
                 </div>
                 <div style={{ color: '#AEC3D6', fontSize: 13, lineHeight: 1.45 }}>
                   {isBusinessBooking
-                    ? 'Escríbenos por correo y te ayudamos a definir una alternativa según tus requerimientos.'
+                    ? 'Escríbenos por WhatsApp y te ayudamos a definir una alternativa según tus requerimientos.'
                     : 'Escríbenos y te ayudamos a encontrar una alternativa cercana.'}
                 </div>
 
@@ -887,7 +892,7 @@ export default function BookingFormSection(props) {
                     boxSizing: 'border-box',
                   }}
                 >
-                  {isBusinessBooking ? 'Consultar alternativa por correo' : 'Consultar alternativa por WhatsApp'}
+                  {isBusinessBooking ? 'Consultar alternativa por WhatsApp' : 'Consultar alternativa por WhatsApp'}
                 </a>
               </div>
             ) : null}
@@ -971,7 +976,7 @@ export default function BookingFormSection(props) {
             }}
           >
             {isBusinessBooking
-              ? 'Al enviar verás un resumen final y el acceso directo al correo de contacto para definir requerimientos.'
+              ? 'Al enviar verás un resumen final y el acceso directo a WhatsApp para definir requerimientos.'
               : 'Al enviar verás un resumen final y el acceso directo para confirmar por WhatsApp.'}
           </div>
 

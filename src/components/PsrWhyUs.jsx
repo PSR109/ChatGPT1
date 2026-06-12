@@ -137,7 +137,20 @@ export default function PsrWhyUs() {
         <p style={{ margin: 0, color: 'rgba(255,255,255,0.76)', lineHeight: 1.55, maxWidth: 760, justifySelf: 'center' }}>
           Equipo profesional que te separa de jugar en casa. Ven a sentir la diferencia.
         </p>
-        <span style={priceBadge}>Sesiones desde $9.000 los 15 min</span>
+        <span style={priceBadge}>Sesiones desde $16.000 (30 min · 1 piloto)</span>
+      </div>
+
+      <div className="psr-whyus-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
+        {['/media/g1.jpg', '/media/g2.jpg', '/media/g3.jpg'].map((src, i) => (
+          <div key={src} style={{ borderRadius: 14, overflow: 'hidden', aspectRatio: '3/4', background: 'rgba(255,255,255,0.04)' }}>
+            <img
+              src={src}
+              alt={['Piloto corriendo en simulador PSR', 'Simulador profesional PSR Puerto Varas', 'Automovilismo real en Patagonia SimRacing'][i]}
+              loading="lazy"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          </div>
+        ))}
       </div>
 
       <div className="psr-whyus-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>

@@ -15,7 +15,8 @@ import { isChallengeExpired, pickActiveChallenge } from './utils/challengeUtils'
 import * as bookingEngine from './utils/bookingEngine.js'
 import LayoutHeader from './components/LayoutHeader'
 import MainTabsNav from './components/MainTabsNav'
-import { buildBookingFollowupWhatsappLink, buildBusinessEmailLink } from './utils/whatsappHelper'
+import PsrWhatsappFab from './components/PsrWhatsappFab'
+import { buildBookingFollowupWhatsappLink, buildBusinessWhatsappLink } from './utils/whatsappHelper'
 import {
   createBookingRecord,
   deleteBookingRecord,
@@ -1852,7 +1853,7 @@ export default function App() {
       setBookingSuccessSummary({
         ...bookingSummary,
         contactLink: draftPayload.reservation_kind === 'EMPRESA' || draftPayload.reservation_kind === 'EVENTO'
-          ? buildBusinessEmailLink(bookingSummary)
+          ? buildBusinessWhatsappLink(bookingSummary)
           : buildBookingFollowupWhatsappLink(bookingSummary),
       })
       setBookingCommercialContext({
@@ -2471,6 +2472,8 @@ export default function App() {
           />
         )}
       </div>
+
+      <PsrWhatsappFab context="general" />
 
       <MainTabsNav
         viewMode={viewMode}

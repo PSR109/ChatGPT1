@@ -237,6 +237,32 @@ export function buildBusinessEmailLink(options = {}) {
   return `mailto:${PSR_EMAIL}?subject=${subject}&body=${body}`
 }
 
+// WhatsApp en vez de mailto para leads B2B (Chile = WhatsApp-first; el mailto botaba
+// al decisor corporativo). Pre-arma el mensaje según tipo (empresa/evento) + resumen.
+export function buildBusinessWhatsappLink(options = {}) {
+  const { kind, client, date, time, configLabel, duration } = options
+  const type = kind === 'EMPRESA' ? 'empresa' : kind === 'EVENTO' ? 'evento' : 'general'
+  const detailLines = [
+    client ? `Nombre: ${client}` : '',
+    date ? `Fecha estimada: ${date}` : '',
+    time ? `Hora estimada: ${time}` : '',
+    configLabel ? `Configuración: ${configLabel}` : '',
+    duration ? `Duración estimada: ${duration} min` : '',
+  ].filter(Boolean).join('\n')
+  return buildCommercialWhatsappLink(type, { name: client || '', details: detailLines })
+}
+
+// Atajo flotante (FAB) por contexto de pestaña → siempre a 1 tap.
+export function buildContextWhatsappLink(context = 'general') {
+  const map = {
+    reservas: 'general',
+    ranking: 'general',
+    empresa: 'empresa',
+    evento: 'evento',
+  }
+  return buildCommercialWhatsappLink(map[context] || 'general')
+}
+
 function getRankingTypeCopy(rankingType) {
   if (rankingType === 'weekly' || rankingType === 'WEEKLY') {
     return {
