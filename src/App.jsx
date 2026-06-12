@@ -65,6 +65,18 @@ const BookingInsightsSection = lazy(() => import('./components/BookingInsightsSe
 
 const TIME_OPTIONS = buildTimeOptions('10:30', '20:00', 30)
 
+// Landings SEO estáticas (public/<slug>/index.html). Links internos = dejan de ser
+// páginas huérfanas (crawl + descubrimiento). Son navegación full-page (fuera del SPA).
+const SEO_LANDINGS = [
+  { href: '/lluvia', label: 'Panoramas con lluvia en Puerto Varas' },
+  { href: '/cumpleanos', label: 'Cumpleaños con carreras entre amigos' },
+  { href: '/licencia', label: 'Practica tu manejo en simulador' },
+  { href: '/sesion-tranquila', label: 'Sesión Tranquila (baja estimulación)' },
+  { href: '/simracers', label: 'Simracing pro: Fanatec Direct Drive' },
+]
+
+const seoLandingLinkStyle = { color: '#7cc4ff', textDecoration: 'none' }
+
 
 const BOOKING_OPTIONS = bookingEngine.BOOKING_OPTIONS
 const getBookingOptionKeyFromBooking = bookingEngine.getBookingOptionKeyFromBooking
@@ -2475,6 +2487,25 @@ export default function App() {
             miniDanger={miniDanger}
           />
         )}
+
+        <footer
+          style={{
+            margin: '32px auto 8px',
+            maxWidth: 560,
+            textAlign: 'center',
+            color: '#9aa7b5',
+            fontSize: 13,
+            lineHeight: 1.9,
+          }}
+        >
+          <div style={{ fontWeight: 700, color: '#aab6d3', marginBottom: 2 }}>Descubre PSR</div>
+          {SEO_LANDINGS.map((landing, index) => (
+            <span key={landing.href}>
+              {index > 0 ? ' · ' : null}
+              <a href={landing.href} style={seoLandingLinkStyle}>{landing.label}</a>
+            </span>
+          ))}
+        </footer>
       </div>
 
       <PsrWhatsappFab context="general" />
