@@ -5,14 +5,16 @@
  * FAB, paquetes, motor sin tocar cada componente). Base para audiencias,
  * lookalikes y medir reel/ad -> reserva.
  *
- * Para activar: en Vercel (Project Settings -> Environment Variables) define
- *   VITE_META_PIXEL_ID, VITE_TIKTOK_PIXEL_ID, VITE_GA4_ID
- * y redeploy. Vercel Analytics (trafico basico) ya corre vía <Analytics/>.
+ * IDs por defecto (medición LIVE 2026-06-12): GA4 propiedad "Patagonia SimRacing"
+ * (cuenta a162931288) + Meta dataset "PSR Web Patagonia SimRacing" (business
+ * 622521433632301). Son IDs de medición PÚBLICOS (van en el bundle de cualquier
+ * sitio con píxel) — no son secretos. Una env VITE_* en Vercel los sobreescribe.
+ * TikTok queda sin default hasta crear su píxel (verificación email pendiente).
  */
 
-const META_ID = import.meta.env.VITE_META_PIXEL_ID
+const META_ID = import.meta.env.VITE_META_PIXEL_ID || '1736361921055510'
 const TIKTOK_ID = import.meta.env.VITE_TIKTOK_PIXEL_ID
-const GA4_ID = import.meta.env.VITE_GA4_ID
+const GA4_ID = import.meta.env.VITE_GA4_ID || 'G-DG56H908WW'
 
 function loadMetaPixel(id) {
   if (window.fbq) return
