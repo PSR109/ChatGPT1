@@ -9,14 +9,32 @@
 margin:0;padding:24px;line-height:1.6}main{max-width:720px;margin:0 auto}
 h1{color:#7cc4ff}a.cta{display:inline-block;background:#1f6feb;color:#fff;
 padding:14px 26px;border-radius:30px;text-decoration:none;font-weight:700;margin:18px 0}
-footer{color:#9aa7b5;font-size:14px;margin-top:28px}</style></head>
+footer{color:#9aa7b5;font-size:14px;margin-top:28px}</style>
+<script>
+/* Medicion PSR (IDs publicos de medicion) — replica compacta de src/utils/tracking.js:
+   GA4 + Meta Pixel + TikTok Pixel (PageView) + listener global clic wa.me -> Contact
+   (o Share si el link lleva data-psr-share). Sin dependencias. */
+(function(){
+var GA='G-DG56H908WW',FB='1736361921055510',TT='D8M6HEJC77U235SQNT20',CTX='landing_simracers';
+var s=document.createElement('script');s.async=!0;s.src='https://www.googletagmanager.com/gtag/js?id='+GA;document.head.appendChild(s);
+window.dataLayer=window.dataLayer||[];window.gtag=function(){window.dataLayer.push(arguments)};window.gtag('js',new Date());window.gtag('config',GA);
+!function(f,b,e,v,n,t,x){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;x=b.getElementsByTagName(e)[0];x.parentNode.insertBefore(t,x)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+window.fbq('init',FB);window.fbq('track','PageView');
+!function(w,d,t){w.TiktokAnalyticsObject=t;var q=w[t]=w[t]||[];q.methods=['page','track','identify','instances','debug','on','off','once','ready','alias','group','enableCookie','disableCookie'];q.setAndDefer=function(e,n){e[n]=function(){e.push([n].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<q.methods.length;i++)q.setAndDefer(q,q.methods[i]);q.instance=function(e){for(var n=q._i[e]||[],i=0;i<q.methods.length;i++)q.setAndDefer(n,q.methods[i]);return n};q.load=function(e,n){var r='https://analytics.tiktok.com/i18n/pixel/events.js';q._i=q._i||{};q._i[e]=[];q._i[e]._u=r;q._t=q._t||{};q._t[e]=+new Date();q._o=q._o||{};q._o[e]=n||{};var o=d.createElement('script');o.type='text/javascript';o.async=!0;o.src=r+'?sdkid='+e+'&lib='+t;var a=d.getElementsByTagName('script')[0];a.parentNode.insertBefore(o,a)};q.load(TT);q.page()}(window,document,'ttq');
+document.addEventListener('click',function(ev){var a=ev.target&&ev.target.closest&&ev.target.closest('a[href*="wa.me"]');if(!a)return;var sh=a.dataset&&a.dataset.psrShare;
+if(sh){try{window.fbq('trackCustom','Share',{context:sh})}catch(e){}try{window.ttq.track('Share',{context:sh})}catch(e){}try{window.gtag('event','share',{method:'whatsapp',content_type:sh})}catch(e){}}
+else{try{window.fbq('track','Contact',{context:CTX})}catch(e){}try{window.ttq.track('Contact',{context:CTX})}catch(e){}try{window.gtag('event','contact',{method:'whatsapp',context:CTX})}catch(e){}}
+},!0);
+})();
+</script>
+</head>
 <body><main>
 <h1>Simracing profesional en Puerto Varas</h1>
 <p>¿Corres simracing en casa? Acá pruebas equipo que no se arma en una pieza: bases Fanatec Direct Drive de 8Nm y 18Nm, freno con célula de carga de 100 kg, volante de rally y de fórmula/GT, caja manual en H y secuencial, freno de mano físico y lentes de realidad virtual.</p>
 <p>Corres a 240 fps con las gráficas al máximo en una pantalla de 49 pulgadas, con tu propia cuenta de iRacing o la de PSR. Si tu volante es de correa, ven a sentir la diferencia.</p>
 <p>Trae tus setups y tu perfil. El cronómetro decide.</p>
 <p>Sin experiencia: te enseñamos en 5 minutos. Desde los 8 años. Sesiones desde $9.000 CLP.</p>
-<a class="cta" href="https://wa.me/56984630196">Reservar por WhatsApp</a>
+<a class="cta" href="https://wa.me/56984630196?text=Hola!%20Soy%20simracer%20y%20quiero%20probar%20los%20Fanatec%20Direct%20Drive%20%F0%9F%8F%81%20Quiero%20reservar%20%5BWEB-SIMRACERS%5D">Reservar por WhatsApp</a>
 <footer>Patagonia SimRacing · Alto Varas 109, Puerto Varas · +56 9 8463 0196 ·
 Lun-Sáb 10:30-20:00 · <a href="https://www.patagoniasimracing.cl" style="color:#7cc4ff">patagoniasimracing.cl</a></footer>
 </main></body></html>
