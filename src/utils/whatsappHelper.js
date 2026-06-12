@@ -252,6 +252,21 @@ export function buildBusinessWhatsappLink(options = {}) {
   return buildCommercialWhatsappLink(type, { name: client || '', details: detailLines })
 }
 
+// Share "Reta a un amigo": wa.me SIN número → abre el selector de contactos del
+// usuario (no escribe a PSR). El mensaje lleva el récord + link al sitio.
+const PSR_SITE_URL = 'https://www.patagoniasimracing.cl'
+
+export function buildChallengeShareLink({ track, time, game } = {}) {
+  const where = [track, game].filter(Boolean).join(' · ')
+  const text = buildMessage([
+    '🏁 Te reto en Patagonia SimRacing (Puerto Varas).',
+    where && time ? `El récord del local en ${where} está en ${time}.` : '',
+    '¿Crees que lo bajas?',
+    `Mira los tiempos y reserva: ${PSR_SITE_URL}`,
+  ])
+  return `https://wa.me/?text=${encodeURIComponent(text)}`
+}
+
 // Atajo flotante (FAB) por contexto de pestaña → siempre a 1 tap.
 export function buildContextWhatsappLink(context = 'general') {
   const map = {

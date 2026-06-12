@@ -71,6 +71,13 @@ export function trackContact(context = 'whatsapp') {
   try { if (window.gtag) window.gtag('event', 'contact', { method: 'whatsapp', context }) } catch { /* no-op */ }
 }
 
+/** Share viral (ej. "Reta a un amigo"): NO es un Contact a PSR — evento aparte. */
+export function trackShare(context = 'record') {
+  try { if (window.fbq) window.fbq('trackCustom', 'Share', { context }) } catch { /* no-op */ }
+  try { if (window.ttq) window.ttq.track('Share', { context }) } catch { /* no-op */ }
+  try { if (window.gtag) window.gtag('event', 'share', { method: 'whatsapp', content_type: context }) } catch { /* no-op */ }
+}
+
 let _inited = false
 export function initTracking() {
   if (_inited) return
@@ -80,11 +87,14 @@ export function initTracking() {
   if (GA4_ID) loadGA4(GA4_ID)
 
   // Listener global: cualquier clic en un link wa.me -> evento Contact.
+  // Excepción: links marcados data-psr-share (share a un amigo) -> evento Share.
   document.addEventListener(
     'click',
     (ev) => {
       const a = ev.target && ev.target.closest && ev.target.closest('a[href*="wa.me"]')
-      if (a) trackContact('wa_link')
+      if (!a) return
+      if (a.dataset && a.dataset.psrShare) trackShare(a.dataset.psrShare)
+      else trackContact('wa_link')
     },
     { capture: true },
   )

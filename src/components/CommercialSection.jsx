@@ -1,5 +1,6 @@
 import { buildCommercialWhatsappLink } from '../utils/whatsappHelper'
 import PsrWhyUs from './PsrWhyUs'
+import PsrFirstTime from './PsrFirstTime'
 
 const reviews = [
   {
@@ -308,6 +309,8 @@ export default function CommercialSection({ setActiveTab, onCommercialReserve })
       </section>
 
       <PsrWhyUs />
+
+      <PsrFirstTime />
 
       <section style={section}>
         <div className="psr-commercial-grid-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14 }}>
