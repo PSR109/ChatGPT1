@@ -1,4 +1,11 @@
 User-agent: *
 Allow: /
 
+# Landing pages SEO long-tail (2026-06-12)
+Allow: /simracers
+Allow: /licencia
+Allow: /cumpleanos
+Allow: /sesion-tranquila
+Allow: /lluvia
+
 Sitemap: https://www.patagoniasimracing.cl/sitemap.xml
