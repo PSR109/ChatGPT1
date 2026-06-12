@@ -2189,6 +2189,8 @@ export default function App() {
                 buttonRowSmall={buttonRowSmall}
                 miniButton={miniButton}
                 miniDanger={miniDanger}
+                onNavigate={navigateToView}
+                currentView={viewMode}
               />
             </>
           </Suspense>
@@ -2342,6 +2344,8 @@ export default function App() {
               table={table}
               th={th}
               td={td}
+              onNavigate={navigateToView}
+              currentView={viewMode}
             />
           </Suspense>
         )}
@@ -2349,7 +2353,7 @@ export default function App() {
 
         {viewMode === 'FORUM' && (
           <Suspense fallback={<SectionLoadingFallback />}>
-            <ForumSection isAdmin={isAdmin} />
+            <ForumSection isAdmin={isAdmin} onNavigate={navigateToView} currentView={viewMode} />
           </Suspense>
         )}
 

@@ -11,7 +11,8 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import SectionCard from './SectionCard'
-import CenteredMessage from './CenteredMessage'
+import CommunityNav from './CommunityNav'
+import { buildCommercialWhatsappLink } from '../utils/whatsappHelper'
 import { buildCenteredTableStyles } from '../utils/tableStyles'
 import {
   buildGlobalRankingMeta,
@@ -382,6 +383,30 @@ function RankingCTA({ isMobile }) {
       <div style={{ opacity: 0.82, marginTop: 6, fontSize: isMobile ? 'clamp(0.76rem, 3vw, 0.86rem)' : 14, lineHeight: 1.35 }}>
         Reserva, corre tu tanda y compite por el mejor tiempo del local.
       </div>
+      <a
+        href={buildCommercialWhatsappLink('general')}
+        target="_blank"
+        rel="noreferrer"
+        style={{
+          marginTop: 12,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: 48,
+          padding: '12px 16px',
+          borderRadius: 14,
+          background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+          color: '#fff',
+          fontWeight: 900,
+          fontSize: 15,
+          lineHeight: 1.2,
+          textAlign: 'center',
+          textDecoration: 'none',
+          boxSizing: 'border-box',
+        }}
+      >
+        Reserva tu vuelta por WhatsApp
+      </a>
     </div>
   )
 }
@@ -499,6 +524,8 @@ export default function GeneralRankingSection({
   buttonRowSmall,
   miniButton,
   miniDanger,
+  onNavigate,
+  currentView,
 }) {
   const globalMeta = useMemo(() => buildGlobalRankingMeta(groupedRanking || []), [groupedRanking])
   const [openSectionKey, setOpenSectionKey] = useState('')
@@ -528,6 +555,7 @@ export default function GeneralRankingSection({
 
   return (
     <SectionCard title="🏁 Ranking general" card={card} sectionTitle={sectionTitle}>
+      <CommunityNav current={currentView || 'GENERAL'} onNavigate={onNavigate} />
       <div
         style={{
           display: 'grid',

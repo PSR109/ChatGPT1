@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import SectionCard from './SectionCard'
 import CenteredMessage from './CenteredMessage'
+import CommunityNav from './CommunityNav'
+import { buildCommercialWhatsappLink } from '../utils/whatsappHelper'
 import { buildPilotProfileData } from '../utils/pilotProfileUtils'
 import { buildCenteredTableStyles } from '../utils/tableStyles'
 
@@ -162,6 +164,8 @@ export default function PilotProfileSection({
   table,
   th,
   td,
+  onNavigate,
+  currentView,
 }) {
   const [search, setSearch] = useState('')
   const [selectedPilot, setSelectedPilot] = useState('')
@@ -269,6 +273,7 @@ export default function PilotProfileSection({
 
   return (
     <SectionCard title="👤 Perfil de piloto" card={card} sectionTitle={sectionTitle}>
+      <CommunityNav current={currentView || 'PROFILE'} onNavigate={onNavigate} />
       {pilotOptions.length === 0 ? (
         <CenteredMessage text="Aún no hay datos suficientes para mostrar perfiles" line={line} />
       ) : (
@@ -447,6 +452,45 @@ export default function PilotProfileSection({
               ) : (
                 <CenteredMessage text="Este piloto aún no tiene tiempos comparables" line={line} />
               )}
+
+              <div
+                style={{
+                  borderRadius: 16,
+                  border: '1px solid rgba(34,197,94,0.28)',
+                  background: 'linear-gradient(180deg, rgba(34,197,94,0.12), rgba(255,255,255,0.03))',
+                  padding: isCompact ? 14 : 16,
+                  textAlign: 'center',
+                  display: 'grid',
+                  gap: 10,
+                }}
+              >
+                <div style={{ fontWeight: 800, fontSize: isCompact ? 15 : 17, lineHeight: 1.2 }}>
+                  ¿Quieres bajar tu mejor tiempo?
+                </div>
+                <a
+                  href={buildCommercialWhatsappLink('general')}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minHeight: 48,
+                    padding: '12px 16px',
+                    borderRadius: 14,
+                    background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                    color: '#fff',
+                    fontWeight: 900,
+                    fontSize: 15,
+                    lineHeight: 1.2,
+                    textAlign: 'center',
+                    textDecoration: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  Reserva tu próxima vuelta por WhatsApp
+                </a>
+              </div>
             </>
           )}
         </div>

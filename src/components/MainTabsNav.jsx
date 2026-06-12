@@ -7,11 +7,11 @@ const primaryTabs = [
 ]
 
 const communityTabs = [
-  { key: 'PROFILE', label: 'Perfil piloto', icon: '👤' },
-  { key: 'FORUM', label: 'Foro', icon: '💬' },
-  { key: 'POINTS', label: 'Puntos', icon: '⭐' },
-  { key: 'WEEKLY', label: 'Semanal', icon: '🏁' },
-  { key: 'MONTHLY', label: 'Mensual', icon: '🏆' },
+  { key: 'PROFILE', label: 'Perfil piloto', icon: '👤', desc: 'Tus tiempos y progreso' },
+  { key: 'FORUM', label: 'Foro', icon: '💬', desc: 'Conversa con la comunidad' },
+  { key: 'POINTS', label: 'Puntos', icon: '⭐', desc: 'Tabla de puntos' },
+  { key: 'WEEKLY', label: 'Desafío semanal', icon: '🏁', desc: 'Reto de la semana' },
+  { key: 'MONTHLY', label: 'Desafío mensual', icon: '🏆', desc: 'Reto del mes' },
 ]
 
 const adminTab = { key: 'ADMIN', label: 'Admin', icon: '🔒' }
@@ -157,8 +157,15 @@ export default function MainTabsNav({
                     fontWeight: 700,
                   }}
                 >
-                  <span style={{ fontSize: 18 }}>{item.icon}</span>
-                  <span>{item.label}</span>
+                  <span style={{ fontSize: 20 }}>{item.icon}</span>
+                  <span style={{ display: 'grid', gap: 2, minWidth: 0 }}>
+                    <span>{item.label}</span>
+                    {item.desc ? (
+                      <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.6)', lineHeight: 1.2 }}>
+                        {item.desc}
+                      </span>
+                    ) : null}
+                  </span>
                 </button>
               )
             })}

@@ -1,6 +1,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../supabaseClient";
+import CommunityNav from "./CommunityNav";
 
 const CATEGORIES = ["Rally", "F1", "GT", "Drift", "Eventos", "General"];
 
@@ -79,7 +80,7 @@ function buildPreviewTitle(content = "") {
   return clean.length > 72 ? `${clean.slice(0, 72).trim()}...` : clean;
 }
 
-export default function ForumSection({ isAdmin = false }) {
+export default function ForumSection({ isAdmin = false, onNavigate, currentView }) {
   const [topics, setTopics] = useState([]);
   const [repliesByPost, setRepliesByPost] = useState({});
   const [loading, setLoading] = useState(true);
@@ -289,6 +290,7 @@ export default function ForumSection({ isAdmin = false }) {
 
   return (
     <section style={styles.wrap}>
+      <CommunityNav current={currentView || 'FORUM'} onNavigate={onNavigate} />
       <div
         style={{
           ...styles.card,
