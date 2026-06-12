@@ -117,16 +117,20 @@ export default function LayoutHeader({ appMode, onAdminBadgeClick }) {
           zIndex: 2,
           marginTop: 16,
           minHeight: 54,
+          padding: '12px 18px',
           borderRadius: 16,
           background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
           color: '#fff',
           fontWeight: 900,
           fontSize: 16,
+          lineHeight: 1.25,
+          textAlign: 'center',
           textDecoration: 'none',
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
           gap: 8,
+          boxSizing: 'border-box',
         }}
       >
         Reserva tu vuelta por WhatsApp

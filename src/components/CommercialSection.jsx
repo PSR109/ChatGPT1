@@ -135,13 +135,16 @@ const section = {
 
 const buttonPrimary = {
   minHeight: 52,
-  padding: '0 18px',
+  padding: '12px 18px',
   borderRadius: 16,
   border: 'none',
   cursor: 'pointer',
   background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
   color: '#fff',
   fontWeight: 900,
+  fontSize: 15,
+  lineHeight: 1.25,
+  textAlign: 'center',
   textDecoration: 'none',
   display: 'inline-flex',
   alignItems: 'center',
