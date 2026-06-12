@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../db.js'
-import { buildCommercialWhatsappLink } from '../utils/whatsappHelper'
+import { buildCommercialWhatsappLink, buildChallengeShareLink } from '../utils/whatsappHelper'
 
 /**
  * PsrWhyUs — el DIFERENCIADOR (specs Fanatec) + precio visible + teaser del récord
@@ -102,6 +102,20 @@ function RecordTeaser() {
       </div>
       <a href={waLink} target="_blank" rel="noreferrer" style={ctaWhatsapp}>
         Ven a romperlo — reserva por WhatsApp
+      </a>
+      <a
+        href={buildChallengeShareLink(rec)}
+        target="_blank"
+        rel="noreferrer"
+        data-psr-share="record"
+        style={{
+          ...ctaWhatsapp,
+          background: 'rgba(255,255,255,0.06)',
+          border: '1px solid rgba(96,165,250,0.35)',
+          color: '#dbeafe',
+        }}
+      >
+        🏁 Reta a un amigo — compártele este récord
       </a>
     </div>
   )
