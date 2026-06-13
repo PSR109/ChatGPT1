@@ -14,6 +14,7 @@ Patagonia SimRacing (PSR) es un centro físico de simracing profesional con 3 si
 
 ## Ubicación y horario
 - Dirección: Centro Comercial Alto Varas, Ruta V-505 Km 2.5, Local 109, Puerto Varas, Región de Los Lagos, Chile (camino a Alerce, a pocos minutos en auto del centro y a 20 minutos de Puerto Montt).
+- Coordenadas (Google Maps): -41.3478998, -72.9546529.
 - Estacionamiento gratuito.
 - Horario: lunes a sábado 10:30–20:00 (sin reserva). Domingo solo con reserva previa.
 
