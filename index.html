@@ -4,18 +4,21 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Patagonia SimRacing | Simulador de Carreras en Puerto Varas</title>
-    <meta name="description" content="Vive la adrenalina del automovilismo en simuladores de carreras profesionales en Puerto Varas. Volante, pedales y pantallas envolventes. Reserva tu sesión por WhatsApp. Desde $9.000." />
+    <title>Patagonia SimRacing | Simulador de Carreras Profesional en Puerto Varas</title>
+    <meta name="description" content="Primer y único centro de simuladores de carreras profesionales del sur de Chile, en Puerto Varas. Hardware real Fanatec Direct Drive, freno de célula de carga, realidad virtual y pantallas 49&quot;. Corre iRacing, Assetto Corsa, EA Sports WRC, F1 y más. Indoor todo-clima. Desde $9.000 los 15 min. Reserva por WhatsApp." />
+    <meta name="keywords" content="simulador de carreras Puerto Varas, simracing sur de Chile, simulador F1 Puerto Varas, panorama dia de lluvia Puerto Varas, Fanatec, iRacing, realidad virtual carreras, que hacer en Puerto Varas" />
     <meta name="robots" content="index, follow" />
     <meta name="google-site-verification" content="dR0v82LIj8nKfZr7Vb_RNwskUn6qKicnL169XfVGpJM" />
     <meta name="theme-color" content="#0a0a0a" />
+    <meta name="geo.region" content="CL-LL" />
+    <meta name="geo.placename" content="Puerto Varas" />
     <link rel="canonical" href="https://www.patagoniasimracing.cl/" />
 
     <!-- Open Graph (preview al compartir en WhatsApp / IG / Facebook) -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Patagonia SimRacing" />
-    <meta property="og:title" content="Patagonia SimRacing | Simulador de Carreras en Puerto Varas" />
-    <meta property="og:description" content="Adrenalina de automovilismo en simuladores profesionales en Puerto Varas. Reserva tu sesión por WhatsApp." />
+    <meta property="og:title" content="Patagonia SimRacing | Simulador de Carreras Profesional en Puerto Varas" />
+    <meta property="og:description" content="El primer y único centro de simuladores de carreras profesionales del sur de Chile. Indoor todo-clima, desde $9.000. Reserva por WhatsApp." />
     <meta property="og:url" content="https://www.patagoniasimracing.cl/" />
     <meta property="og:locale" content="es_CL" />
     <meta property="og:image" content="https://www.patagoniasimracing.cl/og-image.jpg" />
@@ -23,43 +26,163 @@
     <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Patagonia SimRacing | Simulador de Carreras en Puerto Varas" />
-    <meta name="twitter:description" content="Adrenalina de automovilismo en simuladores profesionales en Puerto Varas. Reserva por WhatsApp." />
+    <meta name="twitter:description" content="Adrenalina de automovilismo en simuladores profesionales en Puerto Varas. Indoor todo-clima. Reserva por WhatsApp." />
     <meta name="twitter:image" content="https://www.patagoniasimracing.cl/og-image.jpg" />
 
-    <!-- LocalBusiness schema (SEO local: Google Maps / busqueda local Puerto Varas) -->
+    <!-- LocalBusiness + Service + FAQ schema (SEO local + AI search). geo y aggregateRating
+         se agregan cuando Patricio confirme PIN de Maps / reseñas on-page (no inventar). -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "EntertainmentBusiness",
-      "name": "Patagonia SimRacing",
-      "description": "Centro fisico de simracing profesional en Puerto Varas: 3 simuladores de carreras con volante, pedales, asiento baquet y pantallas envolventes.",
-      "url": "https://www.patagoniasimracing.cl/",
-      "telephone": "+56984630196",
-      "priceRange": "$$",
-      "image": "https://www.patagoniasimracing.cl/og-image.jpg",
-      "address": {
-        "@type": "PostalAddress",
-        "addressLocality": "Puerto Varas",
-        "addressRegion": "Los Lagos",
-        "addressCountry": "CL"
-      },
-      "areaServed": "Region de Los Lagos, Chile",
-      "openingHoursSpecification": [
+      "@graph": [
         {
-          "@type": "OpeningHoursSpecification",
-          "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-          "opens": "10:30",
-          "closes": "20:00"
+          "@type": ["EntertainmentBusiness", "LocalBusiness"],
+          "@id": "https://www.patagoniasimracing.cl/#business",
+          "name": "Patagonia SimRacing",
+          "alternateName": "PSR",
+          "slogan": "El sur llueve. Tú aceleras.",
+          "description": "Primer y único centro de simuladores de carreras profesionales del sur de Chile, en Puerto Varas. 3 simuladores con hardware real: bases Fanatec Direct Drive de hasta 18 Nm, freno de célula de carga de hasta 100 kg, asientos de carreras reales, realidad virtual y pantallas envolventes de 49\". Volante de rally y de fórmula/GT, caja en H y secuencial. Corre iRacing, Assetto Corsa, EA Sports WRC, F1 y más. Entretención indoor todo-clima.",
+          "url": "https://www.patagoniasimracing.cl/",
+          "telephone": "+56984630196",
+          "priceRange": "$$",
+          "currenciesAccepted": "CLP",
+          "paymentAccepted": "Efectivo, débito, crédito, NFC",
+          "image": "https://www.patagoniasimracing.cl/og-image.jpg",
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "Centro Comercial Alto Varas, Ruta V-505 Km 2.5, Local 109",
+            "addressLocality": "Puerto Varas",
+            "addressRegion": "Los Lagos",
+            "postalCode": "5550000",
+            "addressCountry": "CL"
+          },
+          "areaServed": ["Puerto Varas", "Puerto Montt", "Frutillar", "Llanquihue", "Osorno", "Región de Los Lagos"],
+          "openingHoursSpecification": [
+            {
+              "@type": "OpeningHoursSpecification",
+              "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+              "opens": "10:30",
+              "closes": "20:00"
+            }
+          ],
+          "hasMap": "https://www.google.com/maps/search/?api=1&query=Patagonia+SimRacing+Puerto+Varas",
+          "sameAs": [
+            "https://www.instagram.com/patagonia_simracing_pv",
+            "https://www.tiktok.com/@patagonia_simracing",
+            "https://www.youtube.com/channel/UCNzeJ1ZnFC5NRenhwP1ro-Q",
+            "https://www.facebook.com/1124224010782773"
+          ]
+        },
+        {
+          "@type": "Service",
+          "name": "Sesión en simulador de carreras profesional",
+          "serviceType": "Simulador de carreras / simracing",
+          "provider": { "@id": "https://www.patagoniasimracing.cl/#business" },
+          "areaServed": "Región de Los Lagos, Chile",
+          "offers": {
+            "@type": "Offer",
+            "price": "9000",
+            "priceCurrency": "CLP",
+            "description": "Sesión de 15 minutos en simulador de carreras profesional. Escala según tiempo y simulador.",
+            "availability": "https://schema.org/InStock",
+            "url": "https://wa.me/56984630196"
+          }
+        },
+        {
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "¿Qué es Patagonia SimRacing?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Patagonia SimRacing es el primer y único centro de simuladores de carreras profesionales del sur de Chile, en Puerto Varas. No es un arcade: son 3 simuladores con hardware real (bases Fanatec Direct Drive, freno de célula de carga, realidad virtual y pantallas de 49\") donde corres iRacing, Assetto Corsa, EA Sports WRC, F1 y más."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "¿Cuánto cuesta correr en Patagonia SimRacing?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Desde $9.000 CLP los 15 minutos. El precio escala según el tiempo y el simulador. Reservas por WhatsApp al +56 9 8463 0196."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "¿Dónde queda y cómo llego?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "En el Centro Comercial Alto Varas, Ruta V-505 Km 2.5, Local 109, Puerto Varas (camino a Alerce, a pocos minutos en auto del centro y a 20 minutos de Puerto Montt). Estacionamiento gratuito."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "¿Qué horario tienen? ¿Abren domingo?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Lunes a sábado de 10:30 a 20:00, sin reserva. Los domingos abrimos solo con reserva previa por WhatsApp al +56 9 8463 0196."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "¿Necesito experiencia? ¿Sirve para niños y turistas?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "No necesitas experiencia: te configuramos el simulador y partes. Es para fans del automovilismo, familias, grupos, cumpleaños y turistas. Al ser indoor, es el panorama ideal para un día de lluvia en el sur de Chile."
+              }
+            }
+          ]
         }
-      ],
-      "sameAs": [
-        "https://www.instagram.com/patagonia_simracing_pv",
-        "https://www.tiktok.com/@patagonia_simracing"
       ]
     }
     </script>
   </head>
   <body>
+    <!-- Contenido estático para crawlers sin JS (GPTBot, PerplexityBot, ClaudeBot, Bingbot)
+         y fallback si el JS no carga. La app React monta en #root igual. -->
+    <noscript>
+      <main>
+        <h1>Patagonia SimRacing — Simulador de Carreras Profesional en Puerto Varas</h1>
+        <p>
+          Patagonia SimRacing es el <strong>primer y único centro de simuladores de carreras
+          profesionales del sur de Chile</strong>, en Puerto Varas. No es un arcade: son 3 simuladores
+          con hardware real —bases Fanatec Direct Drive de hasta 18 Nm, freno de célula de carga de
+          hasta 100 kg, asientos de carreras reales, realidad virtual y pantallas envolventes de 49"—
+          donde corres iRacing, Assetto Corsa, EA Sports WRC, F1 y más. Entretención indoor todo-clima.
+          <strong>Desde $9.000 los 15 minutos.</strong>
+        </p>
+
+        <h2>Qué ofrecemos</h2>
+        <ul>
+          <li>3 simuladores profesionales: volante Direct Drive (rally y fórmula/GT), pedales con célula de carga, caja en H y secuencial, freno de mano, VR y pantallas 49".</li>
+          <li>Títulos: iRacing, Assetto Corsa, EA Sports WRC, F1 y más.</li>
+          <li>Sesiones individuales, grupos, cumpleaños y eventos.</li>
+          <li>Ranking y récords del local.</li>
+        </ul>
+
+        <h2>Precios</h2>
+        <p>Desde $9.000 CLP los 15 minutos. Escala según tiempo y simulador. Pago en efectivo, débito, crédito y NFC.</p>
+
+        <h2>Ubicación y horario</h2>
+        <p>
+          Centro Comercial Alto Varas, Ruta V-505 Km 2.5, Local 109, Puerto Varas,
+          Región de Los Lagos (camino a Alerce, a 20 min de Puerto Montt). Estacionamiento gratuito.<br />
+          Lunes a sábado 10:30–20:00. Domingo solo con reserva previa.
+        </p>
+
+        <h2>Páginas</h2>
+        <ul>
+          <li><a href="https://www.patagoniasimracing.cl/simracers">Para simracers / experimentados</a></li>
+          <li><a href="https://www.patagoniasimracing.cl/licencia">Practica tu manejo</a></li>
+          <li><a href="https://www.patagoniasimracing.cl/cumpleanos">Cumpleaños y grupos</a></li>
+          <li><a href="https://www.patagoniasimracing.cl/sesion-tranquila">Sesión tranquila</a></li>
+          <li><a href="https://www.patagoniasimracing.cl/lluvia">Panorama de día de lluvia</a></li>
+        </ul>
+
+        <h2>Reservas</h2>
+        <p><a href="https://wa.me/56984630196?text=Hola%2C%20quiero%20reservar%20una%20vuelta.%20%5BRef%3A%20web-home%5D">Reserva tu sesión por WhatsApp (+56 9 8463 0196)</a>.</p>
+      </main>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
