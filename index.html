@@ -29,8 +29,9 @@
     <meta name="twitter:description" content="Adrenalina de automovilismo en simuladores profesionales en Puerto Varas. Indoor todo-clima. Reserva por WhatsApp." />
     <meta name="twitter:image" content="https://www.patagoniasimracing.cl/og-image.jpg" />
 
-    <!-- LocalBusiness + Service + FAQ schema (SEO local + AI search). geo y aggregateRating
-         se agregan cuando Patricio confirme PIN de Maps / reseñas on-page (no inventar). -->
+    <!-- LocalBusiness + Service + FAQ schema (SEO local + AI search). geo = coords reales del
+         PIN de Google Maps (place CID 11500999935444627515). aggregateRating se agrega cuando
+         haya reseñas on-page (no inventar). -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -56,6 +57,11 @@
             "postalCode": "5550000",
             "addressCountry": "CL"
           },
+          "geo": {
+            "@type": "GeoCoordinates",
+            "latitude": -41.3478998,
+            "longitude": -72.9546529
+          },
           "areaServed": ["Puerto Varas", "Puerto Montt", "Frutillar", "Llanquihue", "Osorno", "Región de Los Lagos"],
           "openingHoursSpecification": [
             {
@@ -65,7 +71,7 @@
               "closes": "20:00"
             }
           ],
-          "hasMap": "https://www.google.com/maps/search/?api=1&query=Patagonia+SimRacing+Puerto+Varas",
+          "hasMap": "https://maps.google.com/?cid=11500999935444627515",
           "sameAs": [
             "https://www.instagram.com/patagonia_simracing_pv",
             "https://www.tiktok.com/@patagonia_simracing",
