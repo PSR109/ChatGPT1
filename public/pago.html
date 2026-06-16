@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reserva y Pago | Patagonia SimRacing</title>
+  <style>
+    /* ── DEMO STANDALONE — en producción solo usar el <section id="psr-pago"> ── */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0a;
+      color: #f0f0f0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    /* ── WIDGET (esto es lo que se incrusta) ── */
+    #psr-pago {
+      max-width: 460px;
+      width: 100%;
+      background: #141414;
+      border: 1px solid #2a2a2a;
+      border-radius: 14px;
+      padding: 2rem 1.75rem;
+    }
+
+    #psr-pago h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #e8ff00;
+      margin-bottom: 0.25rem;
+    }
+    #psr-pago .subtitle {
+      font-size: 0.85rem;
+      color: #666;
+      margin-bottom: 1.75rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.1rem;
+    }
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.4rem;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #f0f0f0;
+      padding: 0.65rem 0.85rem;
+      font-size: 0.95rem;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: #e8ff00;
+    }
+    .form-group select option { background: #1e1e1e; }
+
+    /* Monto con prefijo CLP */
+    .amount-wrap {
+      position: relative;
+    }
+    .amount-wrap .prefix {
+      position: absolute;
+      left: 0.85rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #555;
+      font-size: 0.9rem;
+      pointer-events: none;
+    }
+    .amount-wrap input {
+      padding-left: 3rem;
+    }
+
+    /* Precios rápidos */
+    .quick-amounts {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 0.5rem;
+    }
+    .quick-amounts button {
+      background: #1e1e1e;
+      border: 1px solid #333;
+      color: #aaa;
+      border-radius: 6px;
+      padding: 0.3rem 0.7rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .quick-amounts button:hover,
+    .quick-amounts button.active {
+      border-color: #e8ff00;
+      color: #e8ff00;
+      background: #1a1f00;
+    }
+
+    .btn-pagar {
+      width: 100%;
+      background: #e8ff00;
+      color: #0a0a0a;
+      border: none;
+      border-radius: 8px;
+      padding: 0.85rem;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 1.25rem;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn-pagar:hover { opacity: 0.88; }
+    .btn-pagar:active { transform: scale(0.98); }
+    .btn-pagar:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .msg {
+      margin-top: 1rem;
+      font-size: 0.85rem;
+      border-radius: 6px;
+      padding: 0.6rem 0.9rem;
+      display: none;
+    }
+    .msg.error { background: #1f0a0a; border: 1px solid #5a1a1a; color: #ff7070; display: block; }
+    .msg.loading { background: #131300; border: 1px solid #3a3a00; color: #e8ff00; display: block; }
+
+    .seguro {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: 0.9rem;
+      font-size: 0.75rem;
+      color: #444;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════
+     WIDGET — copiar desde aquí hasta </section>
+     ════════════════════════════════════════════ -->
+<section id="psr-pago">
+  <h2>Reserva online</h2>
+  <p class="subtitle">Paga ahora y confirma tu horario por WhatsApp</p>
+
+  <!-- Sesión -->
+  <div class="form-group">
+    <label>Tipo de sesión</label>
+    <select id="tipo-sesion" onchange="actualizarMonto()">
+      <option value="">— Elige una sesión —</option>
+      <option value="9000">15 min — $9.000</option>
+      <option value="15000">30 min — $15.000</option>
+      <option value="25000">60 min — $25.000</option>
+      <option value="otro">Otro / monto personalizado</option>
+    </select>
+  </div>
+
+  <!-- Monto -->
+  <div class="form-group" id="grupo-monto">
+    <label>Monto a pagar (CLP)</label>
+    <div class="amount-wrap">
+      <span class="prefix">$</span>
+      <input
+        type="number"
+        id="monto"
+        placeholder="9000"
+        min="1000"
+        max="500000"
+        step="1000"
+        oninput="limpiarQuick()"
+      />
+    </div>
+    <div class="quick-amounts">
+      <button onclick="setMonto(9000, this)">$9.000</button>
+      <button onclick="setMonto(15000, this)">$15.000</button>
+      <button onclick="setMonto(25000, this)">$25.000</button>
+      <button onclick="setMonto(45000, this)">$45.000</button>
+    </div>
+  </div>
+
+  <!-- Descripción -->
+  <div class="form-group">
+    <label>Descripción / notas (opcional)</label>
+    <input
+      type="text"
+      id="descripcion"
+      placeholder="ej: sesión 30 min, sábado tarde"
+      maxlength="100"
+    />
+  </div>
+
+  <!-- Email -->
+  <div class="form-group">
+    <label>Email (para recibo)</label>
+    <input
+      type="email"
+      id="email"
+      placeholder="tu@email.com"
+    />
+  </div>
+
+  <button class="btn-pagar" id="btn-pagar" onclick="iniciarPago()">
+    Pagar con tarjeta →
+  </button>
+
+  <div class="msg" id="msg"></div>
+
+  <p class="seguro">🔒 Pago seguro vía SumUp · 3D Secure</p>
+</section>
+<!-- ════════════════════════════════════════════ -->
+
+<script>
+  function actualizarMonto() {
+    const sel = document.getElementById('tipo-sesion').value;
+    const montoInput = document.getElementById('monto');
+    if (sel && sel !== 'otro') {
+      montoInput.value = sel;
+      // highlight botón correspondiente
+      document.querySelectorAll('.quick-amounts button').forEach(b => b.classList.remove('active'));
+    } else {
+      montoInput.value = '';
+    }
+  }
+
+  function setMonto(val, btn) {
+    document.getElementById('monto').value = val;
+    document.querySelectorAll('.quick-amounts button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    // sincronizar select
+    const sel = document.getElementById('tipo-sesion');
+    const opt = [...sel.options].find(o => o.value === String(val));
+    if (opt) sel.value = val;
+  }
+
+  function limpiarQuick() {
+    document.querySelectorAll('.quick-amounts button').forEach(b => b.classList.remove('active'));
+  }
+
+  function mostrarMsg(texto, tipo) {
+    const el = document.getElementById('msg');
+    el.textContent = texto;
+    el.className = `msg ${tipo}`;
+  }
+
+  // Atribucion: lee ref de campaña de la URL (?ref= o ?utm_source=) si vino de un reel/post.
+  // Se manda al backend → checkout_reference → el pipeline atribuye la venta a su fuente.
+  function getRef() {
+    const p = new URLSearchParams(window.location.search);
+    return p.get('ref') || p.get('utm_source') || '';
+  }
+
+  async function iniciarPago() {
+    const monto = parseInt(document.getElementById('monto').value, 10);
+    const descripcion = document.getElementById('descripcion').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const btn = document.getElementById('btn-pagar');
+
+    // Validar monto
+    if (!monto || monto < 1000) {
+      return mostrarMsg('Ingresa un monto válido (mínimo $1.000 CLP).', 'error');
+    }
+
+    btn.disabled = true;
+    mostrarMsg('Preparando pago seguro...', 'loading');
+
+    try {
+      const resp = await fetch('/api/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: monto,
+          description: descripcion || 'Sesión Patagonia SimRacing',
+          customerEmail: email || undefined,
+          ref: getRef() || undefined,
+        }),
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        throw new Error(data.error || 'Error al crear el pago.');
+      }
+
+      // Redirigir a SumUp Hosted Checkout
+      window.location.href = data.hosted_checkout_url;
+
+    } catch (err) {
+      mostrarMsg(err.message || 'Error de conexión. Intenta nuevamente.', 'error');
+      btn.disabled = false;
+    }
+  }
+</script>
+
+</body>
+</html>
