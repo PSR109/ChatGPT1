@@ -15,6 +15,11 @@
 const META_ID = import.meta.env.VITE_META_PIXEL_ID || '1736361921055510'
 const TIKTOK_ID = import.meta.env.VITE_TIKTOK_PIXEL_ID || 'D8M6HEJC77U235SQNT20'
 const GA4_ID = import.meta.env.VITE_GA4_ID || 'G-DG56H908WW'
+// PostHog: product/web analytics + session replay + heatmaps + funnels. SIN
+// default (la project-key es por-cuenta, la crea Patricio) -> sin VITE_POSTHOG_KEY
+// es no-op total (no carga nada, no rompe). Una env VITE_* en Vercel la activa.
+const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY || ''
+const POSTHOG_HOST = import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com'
 
 function loadMetaPixel(id) {
   if (window.fbq) return
@@ -66,11 +71,54 @@ function loadGA4(id) {
   window.gtag('config', id)
 }
 
+// Stub oficial de PostHog (de-minificado): encola llamadas hasta que array.js
+// carga, luego inyecta el script async desde el CDN de assets. autocapture +
+// pageviews salen sin instrumentar nada; session replay se activa con el toggle
+// "Record user sessions" en el panel de PostHog. Sin key, nunca se llama (no-op).
+function loadPostHog(key, host) {
+  if (window.posthog && window.posthog.__SV) return
+  const ph = (window.posthog = window.posthog || [])
+  ph._i = []
+  ph.init = function (token, cfg, name) {
+    function stub(target, method) {
+      const parts = method.split('.')
+      let t = target
+      let m = method
+      if (parts.length === 2) { t = target[parts[0]]; m = parts[1] }
+      t[m] = function () { t.push([m].concat(Array.prototype.slice.call(arguments, 0))) }
+    }
+    const el = document.createElement('script')
+    el.type = 'text/javascript'
+    el.crossOrigin = 'anonymous'
+    el.async = true
+    el.src = cfg.api_host.replace('.i.posthog.com', '-assets.i.posthog.com') + '/static/array.js'
+    const first = document.getElementsByTagName('script')[0]
+    first.parentNode.insertBefore(el, first)
+    let u = ph
+    if (name !== undefined) u = ph[name] = []
+    else name = 'posthog'
+    u.people = u.people || []
+    u.toString = function (x) {
+      let s = 'posthog'
+      if (name !== 'posthog') s += '.' + name
+      if (!x) s += ' (stub)'
+      return s
+    }
+    u.people.toString = function () { return u.toString(1) + '.people (stub)' }
+    const methods = 'init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags identify setPersonProperties group resetGroups reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording captureException opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing debug'.split(' ')
+    for (let i = 0; i < methods.length; i++) stub(u, methods[i])
+    ph._i.push([token, cfg, name])
+  }
+  ph.__SV = 1
+  ph.init(key, { api_host: host, person_profiles: 'identified_only' })
+}
+
 /** Evento de conversión clave: el usuario hace clic para escribir por WhatsApp. */
 export function trackContact(context = 'whatsapp') {
   try { if (window.fbq) window.fbq('track', 'Contact', { context }) } catch { /* no-op */ }
   try { if (window.ttq) window.ttq.track('Contact', { context }) } catch { /* no-op */ }
   try { if (window.gtag) window.gtag('event', 'contact', { method: 'whatsapp', context }) } catch { /* no-op */ }
+  try { if (window.posthog) window.posthog.capture('wa_contact', { context }) } catch { /* no-op */ }
 }
 
 /** Share viral (ej. "Reta a un amigo"): NO es un Contact a PSR — evento aparte. */
@@ -78,6 +126,7 @@ export function trackShare(context = 'record') {
   try { if (window.fbq) window.fbq('trackCustom', 'Share', { context }) } catch { /* no-op */ }
   try { if (window.ttq) window.ttq.track('Share', { context }) } catch { /* no-op */ }
   try { if (window.gtag) window.gtag('event', 'share', { method: 'whatsapp', content_type: context }) } catch { /* no-op */ }
+  try { if (window.posthog) window.posthog.capture('share', { context }) } catch { /* no-op */ }
 }
 
 let _inited = false
@@ -87,6 +136,7 @@ export function initTracking() {
   if (META_ID) loadMetaPixel(META_ID)
   if (TIKTOK_ID) loadTikTokPixel(TIKTOK_ID)
   if (GA4_ID) loadGA4(GA4_ID)
+  if (POSTHOG_KEY) loadPostHog(POSTHOG_KEY, POSTHOG_HOST)
 
   // Listener global: cualquier clic en un link wa.me -> evento Contact.
   // Excepción: links marcados data-psr-share (share a un amigo) -> evento Share.
