@@ -2,7 +2,7 @@
 
 PostHog mide **qué hace la gente en patagoniasimracing.cl**: embudo (visita → ve precios → clic WhatsApp), grabación de sesiones (session replay), mapas de calor. Cierra el hueco "no sé por qué se van sin escribir".
 
-El código ya está integrado (`src/utils/tracking.js`). **Es inerte hasta que pongas la key** — sin `VITE_POSTHOG_KEY` no carga nada, no rompe nada. Mismo patrón que GA4/Meta/TikTok.
+✅ **ACTIVO desde 2026-06-18** — la Project API Key del proyecto PSR109 quedó horneada como default en `src/utils/tracking.js` (es PÚBLICA, igual que el píxel Meta/GA4). PostHog carga en prod tras el deploy. Una env `VITE_POSTHOG_KEY` en Vercel la sobreescribe si alguna vez quieres rotarla. Los pasos de abajo quedan como referencia/override.
 
 ## Pasos
 

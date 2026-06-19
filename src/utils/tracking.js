@@ -15,10 +15,11 @@
 const META_ID = import.meta.env.VITE_META_PIXEL_ID || '1736361921055510'
 const TIKTOK_ID = import.meta.env.VITE_TIKTOK_PIXEL_ID || 'D8M6HEJC77U235SQNT20'
 const GA4_ID = import.meta.env.VITE_GA4_ID || 'G-DG56H908WW'
-// PostHog: product/web analytics + session replay + heatmaps + funnels. SIN
-// default (la project-key es por-cuenta, la crea Patricio) -> sin VITE_POSTHOG_KEY
-// es no-op total (no carga nada, no rompe). Una env VITE_* en Vercel la activa.
-const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY || ''
+// PostHog: product/web analytics + session replay + heatmaps + funnels.
+// Project API Key PÚBLICA (va en el bundle como el píxel de Meta/GA4) — no es
+// secreto. Default = key del proyecto "Patagonia SimRacing" (PSR109). Una env
+// VITE_POSTHOG_KEY en Vercel la sobreescribe (rotación/override).
+const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY || 'phc_wZ3HyC8sWsQFiCNTetWJniU724XtRyfDQ5n2qXFVsSdZ'
 const POSTHOG_HOST = import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com'
 
 function loadMetaPixel(id) {
