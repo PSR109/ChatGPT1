@@ -5,7 +5,6 @@ Simulador de carreras profesional en Puerto Varas, Chile. Moneda: CLP (peso chil
 ## Sesión en simulador
 - Precio de entrada: desde $9.000 CLP por 15 minutos.
 - El valor escala según el tiempo reservado y el simulador elegido (no es tarifa plana).
-- Ticket promedio actual: ~$20.000 CLP.
 
 ## Cómo reservar
 - WhatsApp: +56 9 8463 0196 — https://wa.me/56984630196
