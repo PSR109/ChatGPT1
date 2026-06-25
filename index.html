@@ -9,6 +9,18 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Fuentes de marca: Inter (display→body) + JetBrains Mono (tiempos de vuelta).
+         Decisión de Patricio: la tipografía es base de marca. Antes NO se cargaba
+         (caía a system-ui); ahora se sirve Inter de verdad. preconnect + display=swap
+         para evitar bloqueo de render. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap"
+    />
+
     <title>Patagonia SimRacing | Simulador de Carreras Profesional en Puerto Varas</title>
     <meta name="description" content="Primer y único centro de simuladores de carreras profesionales del sur de Chile, en Puerto Varas. Hardware real Fanatec Direct Drive, freno de célula de carga, realidad virtual y pantallas 49&quot;. Corre iRacing, Assetto Corsa, EA Sports WRC, F1 y más. Indoor todo-clima. Desde $9.000 los 15 min. Reserva por WhatsApp." />
     <meta name="keywords" content="simulador de carreras Puerto Varas, simracing sur de Chile, simulador F1 Puerto Varas, panorama dia de lluvia Puerto Varas, Fanatec, iRacing, realidad virtual carreras, que hacer en Puerto Varas" />

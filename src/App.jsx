@@ -239,7 +239,7 @@ function SectionLoadingFallback() {
 
 export default function App() {
   const [appMode, setAppMode] = useState('USER')
-  const [viewMode, setViewMode] = useState('BOOKINGS')
+  const [viewMode, setViewMode] = useState('COMMERCIAL')
   const [isMoreOpen, setIsMoreOpen] = useState(false)
   const [adminEmailInput, setAdminEmailInput] = useState('')
   const [adminPasswordInput, setAdminPasswordInput] = useState('')
