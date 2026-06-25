@@ -9,7 +9,7 @@ import { buildCommercialWhatsappLink } from '../utils/whatsappHelper'
  * un solo tap a reservar. Mobile-first (clamp), entrada animada (reduce-motion
  * safe), 0 dependencias externas: estilos inline + un bloque <style>.
  */
-const SPECS = ['Full-motion', '3 simuladores', 'Todo clima', 'Sin experiencia previa']
+const SPECS = ['Fanatec Direct Drive', '3 simuladores', 'Todo clima', 'Sin experiencia previa']
 
 export default function LayoutHeader({ appMode, onAdminBadgeClick }) {
   const [rec, setRec] = useState(null)
@@ -144,7 +144,7 @@ export default function LayoutHeader({ appMode, onAdminBadgeClick }) {
         </h1>
 
         <p className="psr-hero-in" style={{ margin: 0, fontSize: 'clamp(15px, 2.3vw, 18px)', color: 'rgba(255,255,255,0.88)', lineHeight: 1.5, maxWidth: 600, animationDelay: '0.26s' }}>
-          Simulador de carreras profesional con plataforma de movimiento real. Esto no se arma en tu pieza.
+          Simuladores de carrera profesionales con Fanatec Direct Drive. Esto no se arma en tu pieza.
         </p>
 
         {/* Strip de diferenciadores */}
