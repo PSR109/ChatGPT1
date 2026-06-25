@@ -170,18 +170,24 @@ export default function PsrWhyUs() {
           style={{
             justifySelf: 'start',
             alignSelf: 'end',
-            display: 'inline-flex',
-            flexDirection: 'column',
-            gap: 2,
+            display: 'grid',
+            gap: 9,
             padding: '14px 20px',
             borderRadius: 'var(--r-lg)',
             background: 'linear-gradient(135deg, rgba(34,197,94,0.16), rgba(22,163,74,0.10))',
             border: '1px solid rgba(34,197,94,0.32)',
           }}
         >
-          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(190,242,210,0.9)' }}>Desde</span>
-          <span style={{ fontSize: 'clamp(22px,3vw,28px)', fontWeight: 900, color: '#fff', lineHeight: 1 }}>$16.000</span>
-          <span style={{ fontSize: 12.5, color: 'rgba(220,245,228,0.85)', fontWeight: 600 }}>30 min · 1 piloto</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(190,242,210,0.9)' }}>Desde</span>
+            <span style={{ fontSize: 'clamp(26px,3.4vw,34px)', fontWeight: 900, color: '#fff', lineHeight: 1 }}>$9.000</span>
+            <span style={{ fontSize: 12.5, color: 'rgba(220,245,228,0.85)', fontWeight: 600 }}>15 min · 1 piloto</span>
+          </div>
+          <div style={{ paddingTop: 8, borderTop: '1px solid rgba(190,242,210,0.18)' }}>
+            <span style={{ fontSize: 12, color: 'rgba(220,245,228,0.9)', fontWeight: 600, lineHeight: 1.4 }}>
+              Reserva online desde <strong style={{ color: '#fff', fontWeight: 800 }}>$16.000</strong> · 30 min
+            </span>
+          </div>
         </div>
       </div>
 
