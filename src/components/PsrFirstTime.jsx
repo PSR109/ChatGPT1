@@ -1,63 +1,63 @@
 import { buildCommercialWhatsappLink } from '../utils/whatsappHelper'
+import Icon from './Icon'
+import Reveal from './Reveal'
 
 /**
- * PsrFirstTime — "Primera vez, así funciona": baja la barrera de entrada del
- * visitante que nunca ha corrido en simulador (objeción #1 del primerizo:
- * "¿y si no sé / hago el ridículo?"). 4 pasos honestos + CTA WhatsApp.
+ * PsrFirstTime — "Primera vez, así funciona": baja la barrera del primerizo
+ * ("¿y si no sé / hago el ridículo?"). 4 pasos honestos + CTA WhatsApp.
+ * Copy sin cambios. Composición elevada: stepper conectado con números en mono,
+ * header editorial a la izquierda.
  */
 
 const steps = [
-  {
-    n: '1',
-    k: 'Reserva en 1 minuto',
-    v: 'Por WhatsApp o con la reserva online. Eliges día, hora y cuánto rato quieres correr.',
-  },
-  {
-    n: '2',
-    k: 'Llegas y te dejamos listo',
-    v: 'Te configuramos el simulador a tu nivel: auto, pista y ayudas. No necesitas saber nada antes.',
-  },
-  {
-    n: '3',
-    k: 'Corres a tu ritmo',
-    v: 'Te explicamos lo básico en minutos. Las primeras vueltas son tranquilas y tú decides cuándo apretar.',
-  },
-  {
-    n: '4',
-    k: 'Tu tiempo queda en el ranking',
-    v: 'Compara tu vuelta con el récord del local y vuelve cuando quieras a bajarlo.',
-  },
+  { n: '1', k: 'Reserva en 1 minuto', v: 'Por WhatsApp o con la reserva online. Eliges día, hora y cuánto rato quieres correr.' },
+  { n: '2', k: 'Llegas y te dejamos listo', v: 'Te configuramos el simulador a tu nivel: auto, pista y ayudas. No necesitas saber nada antes.' },
+  { n: '3', k: 'Corres a tu ritmo', v: 'Te explicamos lo básico en minutos. Las primeras vueltas son tranquilas y tú decides cuándo apretar.' },
+  { n: '4', k: 'Tu tiempo queda en el ranking', v: 'Compara tu vuelta con el récord del local y vuelve cuando quieras a bajarlo.' },
 ]
 
 const section = {
-  borderRadius: 24,
-  padding: 20,
-  background: 'linear-gradient(180deg, rgba(8,18,48,0.98) 0%, rgba(5,11,28,0.98) 100%)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  borderRadius: 'var(--r-xl)',
+  padding: 'clamp(22px, 4vw, 40px)',
+  background: 'linear-gradient(180deg, var(--psr-surface) 0%, var(--psr-surface-2) 100%)',
+  border: '1px solid var(--psr-border-soft)',
+  boxShadow: 'var(--sh-2)',
   width: '100%',
   boxSizing: 'border-box',
   display: 'grid',
-  gap: 16,
+  gap: 28,
+}
+
+const kicker = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
+  fontSize: 12,
+  fontWeight: 800,
+  letterSpacing: '0.16em',
+  textTransform: 'uppercase',
+  color: 'var(--psr-cyan-ink)',
 }
 
 const ctaWhatsapp = {
-  minHeight: 52,
-  padding: '12px 18px',
-  borderRadius: 16,
+  minHeight: 54,
+  padding: '14px 22px',
+  borderRadius: 'var(--r-md)',
   border: 'none',
   cursor: 'pointer',
-  background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-  color: '#fff',
+  background: 'linear-gradient(135deg, var(--psr-green) 0%, var(--psr-green-2) 100%)',
+  color: '#04210f',
   fontWeight: 900,
-  fontSize: 15,
+  fontSize: 16,
   lineHeight: 1.25,
-  textAlign: 'center',
   textDecoration: 'none',
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  width: '100%',
+  gap: 10,
+  justifySelf: 'start',
   boxSizing: 'border-box',
+  boxShadow: 'var(--sh-green)',
 }
 
 export default function PsrFirstTime() {
@@ -66,79 +66,61 @@ export default function PsrFirstTime() {
   })
 
   return (
-    <section style={section}>
+    <Reveal as="section" style={section}>
       <style>{`
+        .psr-ft-grid { display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 16px; position:relative; }
+        /* rail conecta los centros reales: círculos centrados en su columna -> centros en 12.5%/37.5%/62.5%/87.5% */
+        .psr-ft-grid::before {
+          content:''; position:absolute; left:12.5%; right:12.5%; top:27px; height:2px;
+          background: linear-gradient(90deg, var(--psr-border-blue), rgba(56,189,248,0.15));
+        }
         @media (max-width: 860px) {
-          .psr-firsttime-grid { grid-template-columns: 1fr !important; }
+          .psr-ft-grid { grid-template-columns: 1fr; gap: 14px; }
+          .psr-ft-grid::before { left:50%; transform:translateX(-50%); top:8%; bottom:8%; right:auto; width:2px; height:auto; background: linear-gradient(180deg, var(--psr-border-blue), rgba(56,189,248,0.12)); }
         }
       `}</style>
 
-      <div style={{ display: 'grid', gap: 8, textAlign: 'center' }}>
-        <div
-          style={{
-            justifySelf: 'center',
-            minHeight: 32,
-            padding: '0 14px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            borderRadius: 999,
-            background: 'rgba(59,130,246,0.14)',
-            border: '1px solid rgba(96,165,250,0.24)',
-            fontSize: 11,
-            fontWeight: 900,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            color: '#dbeafe',
-          }}
-        >
-          ¿Primera vez?
-        </div>
-        <h3 style={{ margin: 0, fontSize: 24, lineHeight: 1.15 }}>Así funciona — sin experiencia previa</h3>
-        <p style={{ margin: 0, color: 'rgba(255,255,255,0.76)', lineHeight: 1.55, maxWidth: 760, justifySelf: 'center' }}>
+      <div style={{ display: 'grid', gap: 12 }}>
+        <span style={kicker}><Icon name="flag" size={16} /> ¿Primera vez?</span>
+        <h2 style={{ margin: 0, fontSize: 'var(--t-h2)', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1.08, color: 'var(--psr-ink)' }}>
+          Así funciona — sin experiencia previa
+        </h2>
+        <p style={{ margin: 0, color: 'var(--psr-muted)', lineHeight: 1.6, maxWidth: 640, fontSize: 'var(--t-lead)' }}>
           La mayoría de quienes vienen nunca había corrido en un simulador. En 4 pasos estás en pista.
         </p>
       </div>
 
-      <div className="psr-firsttime-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
+      <div className="psr-ft-grid">
         {steps.map((s) => (
-          <div
-            key={s.n}
-            style={{
-              borderRadius: 16,
-              padding: 14,
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.07)',
-              display: 'grid',
-              gap: 6,
-              alignContent: 'start',
-            }}
-          >
+          <div key={s.n} style={{ display: 'grid', gap: 10, alignContent: 'start', justifyItems: 'center', textAlign: 'center', position: 'relative' }}>
             <div
+              className="psr-mono"
               style={{
-                width: 30,
-                height: 30,
-                borderRadius: 999,
+                width: 54,
+                height: 54,
+                borderRadius: 16,
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: 'rgba(59,130,246,0.18)',
-                border: '1px solid rgba(96,165,250,0.3)',
-                color: '#dbeafe',
-                fontWeight: 900,
-                fontSize: 14,
+                background: 'linear-gradient(135deg, var(--psr-surface-2), #0a1a2c)',
+                border: '1px solid var(--psr-border-blue)',
+                color: 'var(--psr-cyan)',
+                fontWeight: 700,
+                fontSize: 22,
+                boxShadow: '0 8px 20px -8px rgba(41,129,243,0.5)',
               }}
             >
               {s.n}
             </div>
-            <div style={{ fontWeight: 900, fontSize: 16, color: '#7cc4ff' }}>{s.k}</div>
-            <div style={{ color: 'rgba(255,255,255,0.82)', lineHeight: 1.45 }}>{s.v}</div>
+            <div style={{ fontWeight: 800, fontSize: 16.5, color: 'var(--psr-ink)', lineHeight: 1.2 }}>{s.k}</div>
+            <div style={{ color: 'var(--psr-muted)', lineHeight: 1.5, fontSize: 14.5 }}>{s.v}</div>
           </div>
         ))}
       </div>
 
       <a href={waLink} target="_blank" rel="noreferrer" style={ctaWhatsapp}>
-        Reserva tu primera sesión por WhatsApp
+        <Icon name="whatsapp" size={20} /> Reserva tu primera sesión por WhatsApp
       </a>
-    </section>
+    </Reveal>
   )
 }

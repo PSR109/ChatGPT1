@@ -116,3 +116,148 @@ body,
 .psr-center-app textarea::placeholder {
   text-align: center;
 }
+
+/* ============================================================
+   PSR DESIGN TOKENS — sistema de diseño (DESIGN.md)
+   Colores y tipografía = base de marca (no cambiar los hex).
+   Lo que sube el nivel a "$10k": jerarquía de tipo fluida,
+   sistema de superficies/elevación, ritmo, motion intencional.
+   ============================================================ */
+:root {
+  /* color de marca */
+  --psr-bg: #061018;
+  --psr-bg-deep: #081521;
+  --psr-surface: #0a1722;
+  --psr-surface-2: #0d1f2e;
+  --psr-panel: rgba(255, 255, 255, 0.04);
+  --psr-panel-2: rgba(255, 255, 255, 0.06);
+  --psr-ink: #f5faff;
+  --psr-muted: #b8c4d0;
+  --psr-muted-2: #9aa7b5;
+  --psr-faint: #6f8295;
+  --psr-cyan: #38bdf8;
+  --psr-cyan-ink: #9fd8ff;
+  --psr-blue: #1f6feb;
+  --psr-blue-2: #2981f3;
+  --psr-blue-soft: rgba(41, 129, 243, 0.14);
+  --psr-green: #22c55e;
+  --psr-green-2: #16a34a;
+  --psr-amber: #f59e0b;
+
+  /* bordes */
+  --psr-border: rgba(140, 174, 201, 0.16);
+  --psr-border-soft: rgba(255, 255, 255, 0.07);
+  --psr-border-blue: rgba(41, 129, 243, 0.3);
+  --psr-hairline: rgba(174, 195, 214, 0.12);
+
+  /* radios */
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+  --r-pill: 999px;
+
+  /* elevación */
+  --sh-1: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 8px 24px rgba(0, 0, 0, 0.28);
+  --sh-2: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 22px 54px -14px rgba(0, 0, 0, 0.58);
+  --sh-blue: 0 20px 46px -16px rgba(41, 129, 243, 0.5);
+  --sh-green: 0 14px 34px -10px rgba(34, 197, 94, 0.5);
+
+  /* espacio */
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px;
+  --s-5: 24px; --s-6: 32px; --s-7: 48px; --s-8: 64px; --s-9: 96px;
+
+  /* tipografía */
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* escala de tipo fluida */
+  --t-display: clamp(40px, 9vw, 76px);
+  --t-h1: clamp(30px, 5.4vw, 52px);
+  --t-h2: clamp(25px, 3.8vw, 38px);
+  --t-h3: clamp(20px, 2.6vw, 25px);
+  --t-lead: clamp(16px, 2.2vw, 19px);
+
+  /* motion */
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* tiempos de vuelta y datos numéricos */
+.psr-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* scroll-reveal: entra al entrar al viewport (IntersectionObserver -> .is-in) */
+.psr-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.7s var(--ease-out), transform 0.7s var(--ease-out);
+  will-change: opacity, transform;
+}
+.psr-reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* superficie premium reutilizable + hover lift */
+.psr-card {
+  background: linear-gradient(180deg, var(--psr-surface) 0%, var(--psr-surface-2) 100%);
+  border: 1px solid var(--psr-border-soft);
+  border-radius: var(--r-xl);
+  box-shadow: var(--sh-2);
+  transition: transform 0.2s var(--ease-out), border-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+}
+.psr-lift {
+  transition: transform 0.18s var(--ease-out), border-color 0.18s var(--ease-out), box-shadow 0.18s var(--ease-out);
+}
+.psr-lift:hover {
+  transform: translateY(-3px);
+  border-color: var(--psr-border-blue);
+}
+
+/* enlace con subrayado cyan animado */
+.psr-link {
+  color: var(--psr-cyan-ink);
+  text-decoration: none;
+  background-image: linear-gradient(var(--psr-cyan), var(--psr-cyan));
+  background-size: 0% 1.5px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 0.25s var(--ease-out), color 0.2s var(--ease-out);
+}
+.psr-link:hover {
+  color: #fff;
+  background-size: 100% 1.5px;
+}
+
+/* foco accesible visible (antes los inputs/links no mostraban foco) */
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--psr-cyan);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .psr-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .psr-lift:hover,
+  .psr-card:hover {
+    transform: none;
+  }
+}
+
+/* pulso del punto "EN VIVO" (récord) — global para no depender del hero */
+@keyframes psrpulse {
+  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); }
+  70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
