@@ -9,7 +9,7 @@ Simulador de carreras profesional en Puerto Varas, Chile. Moneda: CLP (peso chil
 
 ## Cómo reservar
 - WhatsApp: +56 9 8463 0196 — https://wa.me/56984630196
-- Pago: efectivo, débito, crédito, NFC (presencial). Pago online vía SumUp.
+- Pago: efectivo, débito, crédito, NFC (presencial, en el local).
 
 ## Grupos, cumpleaños y eventos
 - Disponibles. Cotización por WhatsApp según número de personas y duración.

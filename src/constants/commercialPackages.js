@@ -142,7 +142,7 @@ export const galleryPlaceholders = [
 export const deadHoursOffers = [
   {
     title: "Bloque lento de mañana",
-    desc: "Oferta simple para horarios con poca demanda: sesión corta o segunda persona con valor preferente.",
+    desc: "Señal de oportunidad en horarios de baja demanda: empujar sesiones cortas o reservas de a dos. NO diseñar precio/oferta — toda definición de valor la decide Patricio.",
     note: "Úsalo solo en horarios muertos, no en horas fuertes."
   },
   {
