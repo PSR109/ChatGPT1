@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Patagonia SimRacing · Puerto Varas — Reservar y reseñas</title>
+<meta name="description" content="Reserva por WhatsApp, déjanos tu reseña en Google o TripAdvisor y mira cómo llegar a Patagonia SimRacing, Puerto Varas.">
+<meta name="robots" content="noindex,follow">
+<meta property="og:title" content="Patagonia SimRacing · Puerto Varas">
+<meta property="og:description" content="Reserva por WhatsApp · Reseñas · Cómo llegar.">
+<meta property="og:image" content="https://www.patagoniasimracing.cl/og-image.jpg">
+<link rel="icon" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#05080d; --bg2:#0a121d; --ink:#f5faff; --muted:#9fb3c8;
+    --cyan:#38bdf8; --blue:#1f6feb; --green:#22c55e; --amber:#f59e0b;
+    --line:rgba(120,160,200,.16);
+    --sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+  body{min-height:100svh;display:flex;justify-content:center;
+    background:
+      radial-gradient(120% 70% at 50% -10%, rgba(31,111,235,.22) 0%, transparent 55%),
+      radial-gradient(90% 60% at 50% 120%, rgba(56,189,248,.10) 0%, transparent 60%),
+      var(--bg);
+    padding:32px 18px calc(40px + env(safe-area-inset-bottom));}
+  .wrap{width:100%;max-width:460px;display:flex;flex-direction:column;align-items:center}
+  /* header */
+  .brand{display:flex;align-items:center;gap:13px;margin-top:6px}
+  .hm{width:54px;height:43px;flex:none;filter:drop-shadow(0 6px 18px rgba(56,189,248,.35))}
+  .wm{font:900 26px/1 var(--sans);letter-spacing:.01em}
+  .wm small{display:block;font:700 11px/1 var(--mono);letter-spacing:.34em;color:var(--cyan);margin-top:5px}
+  .geo{margin-top:16px;font:700 12px var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--muted);
+    display:flex;align-items:center;gap:9px}
+  .geo .rec{width:9px;height:9px;border-radius:50%;background:#ef4444;box-shadow:0 0 12px #ef4444;animation:p 2s infinite}
+  @keyframes p{50%{opacity:.35}}
+  .tag{margin-top:22px;text-align:center;font:800 27px/1.18 var(--sans);letter-spacing:-.01em}
+  .tag .hl{color:var(--cyan)}
+  .sub{margin-top:10px;text-align:center;font:500 15px/1.45 var(--sans);color:var(--muted);max-width:340px}
+  /* social proof */
+  .proof{margin-top:18px;display:inline-flex;align-items:center;gap:10px;
+    background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.28);border-radius:999px;
+    padding:8px 16px;font:700 13px var(--mono);letter-spacing:.02em;color:#cdeafe}
+  .proof .stars{color:var(--amber);letter-spacing:.08em;font-size:14px}
+  /* buttons */
+  .links{width:100%;margin-top:26px;display:flex;flex-direction:column;gap:13px}
+  a.btn{display:flex;align-items:center;gap:15px;text-decoration:none;color:var(--ink);
+    background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:16px 18px;
+    transition:transform .12s ease,border-color .12s ease,background .12s ease}
+  a.btn:active{transform:scale(.985)}
+  a.btn .ic{width:42px;height:42px;flex:none;border-radius:11px;display:grid;place-items:center;
+    font-weight:900;font-size:19px}
+  a.btn .tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+  a.btn .tx b{font:800 16px var(--sans);letter-spacing:-.01em}
+  a.btn .tx span{font:600 12.5px var(--mono);letter-spacing:.01em;color:var(--muted)}
+  a.btn .arr{margin-left:auto;color:var(--muted);font-size:20px;flex:none}
+  /* primary = WhatsApp (ventas) */
+  a.wa{background:linear-gradient(180deg,#1f3a2a,#102016);border-color:rgba(34,197,94,.45)}
+  a.wa .ic{background:var(--green);color:#06210f}
+  a.wa .tx b{color:#eafff2}
+  a.wa{box-shadow:0 12px 34px rgba(34,197,94,.18)}
+  /* reviews */
+  a.gg .ic{background:#fff;color:#1f6feb}
+  a.ta .ic{background:#00aa6c;color:#fff;font-size:15px}
+  a.map .ic{background:var(--blue);color:#fff}
+  a.web .ic{background:rgba(56,189,248,.16);color:var(--cyan);border:1px solid rgba(56,189,248,.4)}
+  .foot{margin-top:26px;text-align:center;font:600 12px/1.5 var(--mono);letter-spacing:.04em;color:var(--muted)}
+  .foot a{color:var(--cyan);text-decoration:none}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="brand">
+    <svg class="hm" viewBox="0 0 80 64" fill="none" aria-hidden="true">
+      <path d="M46 10C61 10 72 20 72 34c0 3.5-.6 6.8-1.8 9.8a3 3 0 0 1-2.8 1.9H34C18.5 45.7 8 37.8 8 26.5 8 16 23 10 46 10Z" fill="#0b1a28" stroke="#f5faff" stroke-width="3.4" stroke-linejoin="round"/>
+      <path d="M12 28h40a3 3 0 0 1 3 3v2.5a3 3 0 0 1-3 3H26" fill="none" stroke="#38bdf8" stroke-width="3.4" stroke-linecap="round"/>
+      <path d="M9 33c2 6 8 10 16 11" fill="none" stroke="#f5faff" stroke-width="3" stroke-linecap="round"/>
+      <rect x="60" y="11" width="7" height="7" fill="#2981f3"/><rect x="70" y="19" width="6" height="6" fill="#38bdf8"/><rect x="64" y="30" width="5" height="5" fill="#1f6feb"/>
+    </svg>
+    <div class="wm">Patagonia SimRacing<small>PUERTO VARAS</small></div>
+  </div>
+
+  <div class="geo"><span class="rec"></span>SUR DE CHILE · DIRECT DRIVE</div>
+
+  <h1 class="tag">¿Listo para tu <span class="hl">vuelta</span>? 🏁</h1>
+  <p class="sub">Reserva, déjanos tu reseña o mira cómo llegar. Todo a un toque.</p>
+
+  <div class="proof"><span class="stars">★★★★★</span> 5.0 en Google</div>
+
+  <nav class="links">
+    <a class="btn wa" href="https://wa.me/56984630196" target="_blank" rel="noopener">
+      <span class="ic">✆</span>
+      <span class="tx"><b>Reservar por WhatsApp</b><span>+56 9 8463 0196 · respuesta rápida</span></span>
+      <span class="arr">→</span>
+    </a>
+
+    <a class="btn gg" href="https://g.page/r/CTuw96GBwpufEBM/review" target="_blank" rel="noopener">
+      <span class="ic">G</span>
+      <span class="tx"><b>Déjanos tu reseña en Google</b><span>1 minuto · ayuda caleta 🙌</span></span>
+      <span class="arr">→</span>
+    </a>
+
+    <a class="btn ta" href="https://www.tripadvisor.com/UserReviewEdit-g294299-d34457908" target="_blank" rel="noopener">
+      <span class="ic">◎</span>
+      <span class="tx"><b>Reseña en TripAdvisor</b><span>cuéntale al sur cómo te fue</span></span>
+      <span class="arr">→</span>
+    </a>
+
+    <a class="btn map" href="https://maps.google.com/?cid=11500999935444627515" target="_blank" rel="noopener">
+      <span class="ic">📍</span>
+      <span class="tx"><b>Cómo llegar</b><span>Alto Varas, Local 109 · Ruta V-505 Km 2.5</span></span>
+      <span class="arr">→</span>
+    </a>
+
+    <a class="btn web" href="https://www.patagoniasimracing.cl?utm_source=instagram&utm_medium=bio&utm_campaign=linkinbio" target="_blank" rel="noopener">
+      <span class="ic">◆</span>
+      <span class="tx"><b>Sitio web</b><span>simuladores, horarios y más</span></span>
+      <span class="arr">→</span>
+    </a>
+  </nav>
+
+  <p class="foot">Indoor · techado todo el año · Lun–Sáb 10:30–20:00<br><a href="https://www.patagoniasimracing.cl">patagoniasimracing.cl</a></p>
+</main>
+</body>
+</html>
