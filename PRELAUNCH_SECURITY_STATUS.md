@@ -26,16 +26,16 @@ Estado operativo del endurecimiento aplicado antes del lanzamiento de Patagonia 
 ## Cambios de frontend ya aplicados
 
 - Separación entre disponibilidad pública y reservas admin:
-  - [App.jsx](C:/Users/patri/Desktop/patagonia-simracing/src/App.jsx)
-  - [bookingPersistence.js](C:/Users/patri/Desktop/patagonia-simracing/src/utils/bookingPersistence.js)
+  - [App.jsx](src/App.jsx)
+  - [bookingPersistence.js](src/utils/bookingPersistence.js)
 - Vista SQL preparada para disponibilidad pública:
-  - [booking_availability.sql](C:/Users/patri/Desktop/patagonia-simracing/supabase/booking_availability.sql)
+  - [booking_availability.sql](supabase/booking_availability.sql)
 - Snapshot SQL del hardening aplicado en Supabase:
-  - [prelaunch_hardening.sql](C:/Users/patri/Desktop/patagonia-simracing/supabase/prelaunch_hardening.sql)
+  - [prelaunch_hardening.sql](supabase/prelaunch_hardening.sql)
 - Ajuste base responsive para mobile:
-  - [index.css](C:/Users/patri/Desktop/patagonia-simracing/src/index.css)
-  - [appStyles.js](C:/Users/patri/Desktop/patagonia-simracing/src/styles/appStyles.js)
-  - [MainTabsNav.jsx](C:/Users/patri/Desktop/patagonia-simracing/src/components/MainTabsNav.jsx)
+  - [index.css](src/index.css)
+  - [appStyles.js](src/styles/appStyles.js)
+  - [MainTabsNav.jsx](src/components/MainTabsNav.jsx)
 
 ## Decisiones funcionales importantes
 
