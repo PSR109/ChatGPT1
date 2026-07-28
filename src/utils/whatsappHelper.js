@@ -253,8 +253,9 @@ export function buildBusinessWhatsappLink(options = {}) {
 }
 
 // Share "Reta a un amigo": wa.me SIN número → abre el selector de contactos del
-// usuario (no escribe a PSR). El mensaje lleva el récord + link al sitio.
-const PSR_SITE_URL = 'https://www.patagoniasimracing.cl'
+// usuario (no escribe a PSR). El mensaje lleva el récord + link al sitio con
+// deep-link #reservas (la SPA lo lee al montar y abre directo la vista de reservas).
+const PSR_SITE_URL = 'https://www.patagoniasimracing.cl/#reservas'
 
 export function buildChallengeShareLink({ track, time, game } = {}) {
   const where = [track, game].filter(Boolean).join(' · ')

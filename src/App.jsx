@@ -10,13 +10,13 @@ import {
   formatGap,
   getGameOrderIndex,
 } from './utils/psrUtils'
-import BookingsSection from './components/BookingsSection'
+import CommercialSection from './components/CommercialSection'
 import { isChallengeExpired, pickActiveChallenge } from './utils/challengeUtils'
 import * as bookingEngine from './utils/bookingEngine.js'
 import LayoutHeader from './components/LayoutHeader'
 import MainTabsNav from './components/MainTabsNav'
 import PsrWhatsappFab from './components/PsrWhatsappFab'
-import { buildBookingFollowupWhatsappLink, buildBusinessWhatsappLink } from './utils/whatsappHelper'
+import { buildBookingFollowupWhatsappLink, buildBusinessWhatsappLink, PSR_EMAIL, PSR_WHATSAPP_NUMBER } from './utils/whatsappHelper'
 import {
   createBookingRecord,
   deleteBookingRecord,
@@ -59,7 +59,7 @@ const ChallengeSection = lazy(() => import('./components/ChallengeSection'))
 const PointsSection = lazy(() => import('./components/PointsSection'))
 const LapTimeEditorSection = lazy(() => import('./components/LapTimeEditorSection'))
 const PilotProfileSection = lazy(() => import('./components/PilotProfileSection'))
-const CommercialSection = lazy(() => import('./components/CommercialSection'))
+const BookingsSection = lazy(() => import('./components/BookingsSection'))
 const ForumSection = lazy(() => import('./components/ForumSection'))
 const BookingInsightsSection = lazy(() => import('./components/BookingInsightsSection'))
 
@@ -237,9 +237,17 @@ function SectionLoadingFallback() {
   )
 }
 
+// Deep-link a reservas (SPA sin router): #reservas o ?v=reservas abren la vista BOOKINGS.
+function getInitialViewMode() {
+  if (typeof window === 'undefined') return 'COMMERCIAL'
+  const hash = window.location.hash.replace(/^#/, '').toLowerCase()
+  const param = new URLSearchParams(window.location.search).get('v')
+  return hash === 'reservas' || String(param || '').toLowerCase() === 'reservas' ? 'BOOKINGS' : 'COMMERCIAL'
+}
+
 export default function App() {
   const [appMode, setAppMode] = useState('USER')
-  const [viewMode, setViewMode] = useState('COMMERCIAL')
+  const [viewMode, setViewMode] = useState(getInitialViewMode)
   const [isMoreOpen, setIsMoreOpen] = useState(false)
   const [adminEmailInput, setAdminEmailInput] = useState('')
   const [adminPasswordInput, setAdminPasswordInput] = useState('')
@@ -2321,21 +2329,19 @@ export default function App() {
 
 
         {viewMode === 'COMMERCIAL' && (
-          <Suspense fallback={<SectionLoadingFallback />}>
-            <CommercialSection
-              setActiveTab={(nextTab) => {
-                if (nextTab === 'reservas') {
-                  setViewMode('BOOKINGS')
-                  return
-                }
-                setViewMode(nextTab)
-              }}
-              onCommercialReserve={(prefill) => {
+          <CommercialSection
+            setActiveTab={(nextTab) => {
+              if (nextTab === 'reservas') {
                 setViewMode('BOOKINGS')
-                applyCommercialPrefill(prefill)
-              }}
-            />
-          </Suspense>
+                return
+              }
+              setViewMode(nextTab)
+            }}
+            onCommercialReserve={(prefill) => {
+              setViewMode('BOOKINGS')
+              applyCommercialPrefill(prefill)
+            }}
+          />
         )}
 
 
@@ -2428,7 +2434,8 @@ export default function App() {
         )}
 
         {viewMode === 'BOOKINGS' && (
-          <BookingsSection
+          <Suspense fallback={<SectionLoadingFallback />}>
+            <BookingsSection
             isAdmin={isAdmin}
             editingBookingId={editingBookingId}
             bookingClient={bookingClient}
@@ -2486,6 +2493,7 @@ export default function App() {
             miniButton={miniButton}
             miniDanger={miniDanger}
           />
+          </Suspense>
         )}
 
         <footer
@@ -2505,6 +2513,16 @@ export default function App() {
               <a href={landing.href} style={seoLandingLinkStyle}>{landing.label}</a>
             </span>
           ))}
+          <div>
+            Centro Comercial Alto Varas, Ruta V-505 Km 2.5, Local 109, Puerto Varas
+            {' · '}
+            <a href={`https://wa.me/${PSR_WHATSAPP_NUMBER}`} target="_blank" rel="noopener" style={seoLandingLinkStyle}>+56 9 8463 0196</a>
+            {' · '}
+            <a href={`mailto:${PSR_EMAIL}`} style={seoLandingLinkStyle}>{PSR_EMAIL}</a>
+          </div>
+          <div>
+            <a href="https://configuracion.patagoniasimracing.cl" target="_blank" rel="noopener" style={seoLandingLinkStyle}>Tienda PSR: setups profesionales y suscripción Pro →</a>
+          </div>
         </footer>
       </div>
 
