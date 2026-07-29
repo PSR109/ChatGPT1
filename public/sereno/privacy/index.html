@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Privacy Policy — Sereno: White Noise &amp; Sleep</title>
+<meta name="description" content="Privacy policy for Sereno: White Noise & Sleep. The app runs entirely on your device: no account, no servers, no analytics, no tracking.">
+<link rel="canonical" href="https://www.patagoniasimracing.cl/sereno/privacy">
+<style>body{background:#0b1320;color:#eef2f7;font-family:system-ui,Arial,sans-serif;
+margin:0;padding:24px;line-height:1.6}main{max-width:720px;margin:0 auto}
+h1{color:#7cc4ff}h2{color:#7cc4ff;margin-top:34px;font-size:20px}
+a{color:#7cc4ff}
+table{border-collapse:collapse;width:100%;margin:14px 0;font-size:15px}
+th,td{border:1px solid #2a3a4d;padding:8px 10px;text-align:left;vertical-align:top}
+th{background:#131e30;color:#7cc4ff}
+footer{color:#9aa7b5;font-size:14px;margin-top:34px;border-top:1px solid #2a3a4d;padding-top:16px}
+.meta{color:#9aa7b5;font-size:15px}</style>
+</head>
+<body><main>
+<h1>Privacy Policy — Sereno: White Noise &amp; Sleep</h1>
+<p class="meta"><strong>Effective date:</strong> 2026-07-29<br>
+<strong>Applies to:</strong> Sereno: White Noise &amp; Sleep for Android and iOS, package / bundle identifier <code>cl.patagoniasimracing.sereno</code>.</p>
+
+<h2>1. The short version</h2>
+<p>Sereno: White Noise &amp; Sleep runs entirely on your device. Every soundscape is generated live on your phone — there are no recordings, no streaming, no account, no sign-in and no server operated by us. We do not collect, receive, store or sell your personal data, and we cannot see your mixes, your routines or your nights: they never reach us.</p>
+<p>One thing involves someone other than you and this app: a purchase is processed by <strong>Google Play or Apple</strong> and recorded through <strong>RevenueCat</strong> (section 6). Nothing else ever leaves the device.</p>
+<p>The rest of this document is the detail behind those statements. It deliberately does not contain clauses about data we never touch: a policy that describes collection that does not happen is not a safeguard, it is a false statement.</p>
+
+<h2>2. Who is responsible</h2>
+<p>The data controller is:</p>
+<ul>
+<li><strong>Name:</strong> Rev It Up SpA</li>
+<li><strong>Country:</strong> Chile</li>
+<li><strong>Email:</strong> <a href="mailto:contacto@patagoniasimracing.cl">contacto@patagoniasimracing.cl</a></li>
+</ul>
+<p>The operator is a small company without a data-protection department. The email address above is the only contact channel and it reaches a person, not a ticketing system.</p>
+
+<h2>3. What this app does not do</h2>
+<p>To be explicit, because the absence is the point:</p>
+<ul>
+<li>No user account, no registration, no login, no password.</li>
+<li>No server, database or API of ours. The app makes no network request to any system we control, because no such system exists.</li>
+<li>No advertising, no advertising identifier (AAID/IDFA), no ad network SDK, and no cross-app or cross-site tracking of any kind.</li>
+<li>No analytics product. The app ships with an analytics module that is a deliberate no-op: no bundled provider, no destination, so calls to it discard the event. If a future version ever sends usage data anywhere, this policy will say so by name before that version is released.</li>
+<li>No microphone access, ever. Sereno <strong>generates</strong> sound; it does not record it.</li>
+<li>No location access, ever.</li>
+<li>No sale, rental or sharing of personal data. There is nothing to sell.</li>
+<li>No email list, no newsletter, no push notifications from us.</li>
+</ul>
+
+<h2>4. What is stored, and where</h2>
+<p>Everything the app produces is written into the app's own private storage area on your device — the sandbox that Android and iOS give each installed app and that other apps cannot read.</p>
+<table>
+<tr><th>What</th><th>Where</th><th>Notes</th></tr>
+<tr><td>Your saved sound mixes</td><td>Device only</td><td>Never transmitted</td></tr>
+<tr><td>Wind-down routine progress and session summaries</td><td>Device only</td><td>Never transmitted</td></tr>
+<tr><td>Nightstand-check motion readings</td><td>Device only</td><td>Processed on device, discarded; never transmitted</td></tr>
+<tr><td>Language preference and app settings</td><td>App storage</td><td>Local only</td></tr>
+<tr><td>Your acknowledgement of in-app notices</td><td>Small file in app storage</td><td>So they are not shown twice</td></tr>
+</table>
+<p><strong>Deleting the app deletes all of it.</strong> Uninstalling Sereno removes its sandbox, and with it every item above. We hold no copy, so there is nothing for us to delete on your behalf. For the one record kept elsewhere — the purchase record — see sections 6 and 9.</p>
+
+<h2>5. The motion sensor (nightstand check)</h2>
+<p>If you use the nightstand check, Sereno reads the phone's motion sensor while it rests on your nightstand so the morning summary can describe how settled the night was. The readings are processed on the device, are never uploaded, and are not shared with anyone. The app has no access to the microphone and records no audio. You can ignore the nightstand check entirely; the rest of the app does not depend on it.</p>
+
+<h2>6. Purchases</h2>
+<p>Sereno is free with a starter library; Sereno Pro (monthly or yearly subscription) is sold through Google Play and the App Store. <strong>We are not the merchant of record</strong>: Google or Apple is. Your payment details are entered into Google's or Apple's systems and are never seen, handled or stored by this app or by us.</p>
+<p>To know whether you have unlocked the paid features, the app uses <strong>RevenueCat</strong> (RevenueCat, Inc.), a purchase-infrastructure provider. Verified against RevenueCat's own documentation and against how this app calls their SDK:</p>
+<ul>
+<li><strong>What RevenueCat receives is purchase history</strong> — the transaction and receipt information needed to validate a purchase and report whether the unlock is active.</li>
+<li><strong>You are identified only by a random, anonymous identifier</strong> that RevenueCat's SDK generates on first launch. This app calls <code>configure</code> without supplying any user ID, so no identifier of ours, of yours, or of your device is attached to it. It is not linked to your name, your email or your Google/Apple account, and we have no way to work backwards from it to you.</li>
+<li><strong>Device identifiers and advertising attribution are opt-in features that this app does not enable.</strong> The SDK exposes <code>collectDeviceIdentifiers()</code> and <code>setAttributes()</code>. Neither is called anywhere in Sereno.</li>
+<li>What we can see in RevenueCat's dashboard is aggregate commercial data — how many unlocks, in which country, at what price. Not who you are.</li>
+</ul>
+<p>RevenueCat processes this data on their own infrastructure and under their own privacy policy: <a href="https://www.revenuecat.com/privacy">https://www.revenuecat.com/privacy</a>. Google and Apple process the payment under theirs.</p>
+<p>Separately, and outside our control: Google and Apple give developers aggregated crash and performance reports for users who have opted in, at the operating-system level, to share diagnostics with developers. Those reports come from the platform, not from code we wrote, and they contain no app content of yours.</p>
+
+<h2>7. Permissions the app may ask for</h2>
+<table>
+<tr><th>Permission</th><th>Why it is requested</th><th>Where the data goes</th></tr>
+<tr><td>Motion / sensors (Android: <code>HIGH_SAMPLING_RATE_SENSORS</code>)</td><td>Nightstand check: read how much the phone moves overnight</td><td>Analysed on device; never uploaded</td></tr>
+</table>
+<p>No other sensitive permission is requested. You may refuse or revoke it in the operating-system settings; the nightstand check stops working and the rest of the app does not.</p>
+
+<h2>8. Children</h2>
+<p>Sereno: White Noise &amp; Sleep is intended for a general adult audience. It is <strong>not directed at children</strong>, is not designed for them, and contains no content, feature or advertising aimed at them. The wind-down and baby-settling guidance inside the app is written for parents and caregivers, to be used by adults, never by leaving a device with a child. We do not knowingly collect personal data from anyone, and specifically not from a child — there is no mechanism in the app by which a child, or anyone else, could give us any.</p>
+
+<h2>9. Your rights and data deletion</h2>
+<p>Because we hold no personal data about you, the usual rights — access, rectification, erasure, portability, objection — have no data at our end to operate on. You exercise their practical equivalent directly: the data is already on your device, and erasure means deleting the app.</p>
+<p>For purchase records, the holders are Google, Apple and RevenueCat. If you want the anonymous RevenueCat customer record removed, write to us at <a href="mailto:contacto@patagoniasimracing.cl">contacto@patagoniasimracing.cl</a> and we will delete it from the RevenueCat dashboard. We cannot delete a transaction record that we do not hold and that tax and consumer law obliges the platforms to keep.</p>
+
+<h2>10. Changes to this policy</h2>
+<p>If the app's behaviour changes in a way that affects this document — a new permission, a new third party, any actual data collection — the policy will be updated <strong>before</strong> the version that makes the change is released, and the effective date at the top will be revised. Material changes will be described in a short note in this section rather than absorbed silently into the text.</p>
+
+<h2>11. Governing law</h2>
+<p>This policy is governed by the laws of the Republic of Chile, where the operator is established.</p>
+<p>Nothing in this document is legal advice.</p>
+
+<h2>12. Contact</h2>
+<p>Questions about this policy: <a href="mailto:contacto@patagoniasimracing.cl">contacto@patagoniasimracing.cl</a>.</p>
+<p>Please do not send us screenshots of your nights, your mixes or any personal data when reporting a problem unless we ask for them and you have removed anything confidential first. We would rather not receive data we have gone to this much trouble not to collect.</p>
+
+<footer>Sereno: White Noise &amp; Sleep · Rev It Up SpA, Chile ·
+<a href="mailto:contacto@patagoniasimracing.cl">contacto@patagoniasimracing.cl</a> ·
+<a href="/sereno/support">Support</a></footer>
+</main></body></html>
