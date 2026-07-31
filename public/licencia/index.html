@@ -31,6 +31,18 @@ document.addEventListener('click',function(ev){var a=ev.target&&ev.target.closes
 if(sh){try{window.fbq('trackCustom','Share',{context:sh})}catch(e){}try{window.ttq.track('Share',{context:sh})}catch(e){}try{window.gtag('event','share',{method:'whatsapp',content_type:sh})}catch(e){}}
 else{try{window.fbq('track','Contact',{context:CTX})}catch(e){}try{window.ttq.track('Contact',{context:CTX})}catch(e){}try{window.gtag('event','contact',{method:'whatsapp',context:CTX})}catch(e){}}
 },!0);
+/* Esta landing ofrece TRES caminos (llegar / reservar en la web / WhatsApp) y solo
+   el de WhatsApp estaba medido. Sin esto no hay forma de saber cual usa la gente. */
+document.addEventListener('click',function(ev){var a=ev.target&&ev.target.closest&&ev.target.closest('a[href*="#reservas"]');if(!a)return;
+try{window.fbq('track','Lead',{context:CTX,method:'web_booking'})}catch(e){}
+try{window.ttq.track('ClickButton',{context:CTX,method:'web_booking'})}catch(e){}
+try{window.gtag('event','begin_checkout',{method:'web_booking',context:CTX})}catch(e){}
+},!0);
+document.addEventListener('click',function(ev){var a=ev.target&&ev.target.closest&&ev.target.closest('a[href*="google.com/maps"]');if(!a)return;
+try{window.fbq('track','FindLocation',{context:CTX})}catch(e){}
+try{window.ttq.track('ClickButton',{context:CTX,method:'directions'})}catch(e){}
+try{window.gtag('event','get_directions',{context:CTX})}catch(e){}
+},!0);
 })();
 </script>
 </head>
@@ -48,14 +60,17 @@ else{try{window.fbq('track','Contact',{context:CTX})}catch(e){}try{window.ttq.tr
 
 <p>Es para ti si vas a empezar a manejar y quieres llegar con algo de calle encima; si manejas hace años pero nunca has sentido un derrape; o si simplemente quieres soltar las manos en un lugar donde equivocarse sale barato.</p>
 
-<p>Sin experiencia: te explicamos el simulador en 5 minutos. Desde los 8 años. Sesiones desde $9.000 CLP presencial · reserva online desde $16.000 CLP (30 min).</p>
+<p>Sin experiencia: te explicamos el simulador en 5 minutos. Desde los 8 años.</p>
 
 <div class="llegar">
-<p><strong>Para venir a probar no necesitas reservar.</strong> Llega y te subimos al simulador.</p>
+<p><strong>Para venir a probar no necesitas reservar.</strong> Llega, te subimos al simulador y pagas acá: <strong>desde $9.000 CLP los 15 minutos</strong>.</p>
 <p>📍 Centro Comercial Alto Varas, Local 109, Puerto Varas</p>
 <p>🕙 Lunes a sábado, 10:30 a 20:00</p>
 <p><a href="https://www.google.com/maps/dir/?api=1&destination=Patagonia+SimRacing+Puerto+Varas" target="_blank" rel="noopener" style="color:#7cc4ff">Cómo llegar →</a></p>
 </div>
+
+<p>¿Prefieres tener tu horario tomado? Puedes agendarlo en la web. La reserva parte en <strong>30 minutos desde $16.000 CLP</strong> y también se paga en el local.</p>
+<a class="cta" id="psr-reservar" href="https://www.patagoniasimracing.cl/#reservas">Reservar mi horario</a>
 
 <p>¿Vienen varios, o quieres preguntar algo antes?</p>
 <a class="cta wa" href="https://wa.me/56984630196?text=Hola!%20Vi%20la%20p%C3%A1gina%20de%20practicar%20manejo%20en%20simulador%20%F0%9F%9A%97%20Quiero%20preguntar%20por%20una%20sesi%C3%B3n%20%5BWEB-LICENCIA%5D">Escríbenos por WhatsApp</a>
