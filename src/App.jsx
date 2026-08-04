@@ -17,6 +17,7 @@ import LayoutHeader from './components/LayoutHeader'
 import MainTabsNav from './components/MainTabsNav'
 import PsrWhatsappFab from './components/PsrWhatsappFab'
 import { buildBookingFollowupWhatsappLink, buildBusinessWhatsappLink, PSR_EMAIL, PSR_WHATSAPP_NUMBER } from './utils/whatsappHelper'
+import { buildStoreLink } from './utils/storeLink'
 import {
   createBookingRecord,
   deleteBookingRecord,
@@ -2521,7 +2522,10 @@ export default function App() {
             <a href={`mailto:${PSR_EMAIL}`} style={seoLandingLinkStyle}>{PSR_EMAIL}</a>
           </div>
           <div>
-            <a href="https://configuracion.patagoniasimracing.cl" target="_blank" rel="noopener" style={seoLandingLinkStyle}>Tienda PSR: setups profesionales y suscripción Pro →</a>
+            {/* Al CATÁLOGO, no a la raíz: la raíz es el generador gratis y ahí
+                el visitante no ve un solo producto. Con UTM + data-psr-store
+                para poder comparar este pie contra el bloque del home. */}
+            <a href={buildStoreLink('footer')} target="_blank" rel="noopener" data-psr-store="footer" style={seoLandingLinkStyle}>Tienda PSR: setups profesionales y suscripción Pro →</a>
           </div>
         </footer>
       </div>

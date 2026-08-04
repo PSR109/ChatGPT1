@@ -122,6 +122,23 @@ export function trackContact(context = 'whatsapp') {
   try { if (window.posthog) window.posthog.capture('wa_contact', { context }) } catch { /* no-op */ }
 }
 
+/**
+ * Clic hacia la TIENDA digital (configuracion.patagoniasimracing.cl).
+ *
+ * NO es un Contact: nadie escribió por WhatsApp ni reservó. Es la salida del
+ * embudo del simcenter hacia el único checkout vivo del portafolio, y es el
+ * paso que hoy no se medía en ninguna parte — la tienda ve la visita en su
+ * propio Cloudflare Web Analytics, pero acá no quedaba registro de CUÁNTA gente
+ * y desde QUÉ emplazamiento se va a comprar. Sin este evento no se puede
+ * comparar si convierte más el bloque del home o la landing /simracers.
+ */
+export function trackStoreClick(context = 'store') {
+  try { if (window.fbq) window.fbq('trackCustom', 'StoreClick', { context }) } catch { /* no-op */ }
+  try { if (window.ttq) window.ttq.track('ClickButton', { context }) } catch { /* no-op */ }
+  try { if (window.gtag) window.gtag('event', 'store_click', { context }) } catch { /* no-op */ }
+  try { if (window.posthog) window.posthog.capture('store_click', { context }) } catch { /* no-op */ }
+}
+
 /** Share viral (ej. "Reta a un amigo"): NO es un Contact a PSR — evento aparte. */
 export function trackShare(context = 'record') {
   try { if (window.fbq) window.fbq('trackCustom', 'Share', { context }) } catch { /* no-op */ }
@@ -141,10 +158,24 @@ export function initTracking() {
 
   // Listener global: cualquier clic en un link wa.me -> evento Contact.
   // Excepción: links marcados data-psr-share (share a un amigo) -> evento Share.
+  // Y cualquier clic hacia la tienda -> evento StoreClick, con el emplazamiento
+  // que declare data-psr-store. Global a propósito, igual que wa.me: así un
+  // enlace nuevo a la tienda nace medido sin que nadie se acuerde de
+  // instrumentarlo (que es exactamente por qué los dos que existían no medían
+  // nada).
   document.addEventListener(
     'click',
     (ev) => {
-      const a = ev.target && ev.target.closest && ev.target.closest('a[href*="wa.me"]')
+      const target = ev.target
+      if (!target || !target.closest) return
+
+      const store = target.closest('a[href*="configuracion.patagoniasimracing.cl"]')
+      if (store) {
+        trackStoreClick((store.dataset && store.dataset.psrStore) || 'store_link')
+        return
+      }
+
+      const a = target.closest('a[href*="wa.me"]')
       if (!a) return
       if (a.dataset && a.dataset.psrShare) trackShare(a.dataset.psrShare)
       else trackContact('wa_link')

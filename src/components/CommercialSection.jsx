@@ -1,4 +1,5 @@
 import { buildCommercialWhatsappLink } from '../utils/whatsappHelper'
+import { buildStoreLink } from '../utils/storeLink'
 import PsrWhyUs from './PsrWhyUs'
 import PsrFirstTime from './PsrFirstTime'
 import Icon from './Icon'
@@ -339,6 +340,61 @@ export default function CommercialSection({ setActiveTab, onCommercialReserve })
         <div className="psr-reviews">
           {reviews.map((review) => <ReviewCard key={`${review.author}-${review.text}`} review={review} />)}
         </div>
+      </Reveal>
+
+      {/* 5.5 · Tienda de setups (cross-sell al único checkout vivo del portafolio)
+          ------------------------------------------------------------------
+          Este sitio es el único activo de PSR con público real y clientes que
+          ya pagan; la tienda de setups es el único checkout vivo. Hasta el
+          2026-08-03 el puente entre ambos era UN enlace de texto en el pie,
+          apuntando a la RAÍZ del dominio de la tienda (o sea, al generador
+          gratis) y sin UTM: el visitante nunca veía un producto y el clic no
+          se medía en ninguna parte.
+
+          Va DESPUÉS de las reseñas y ANTES de ubicación/FAQ a propósito. No
+          se pone sobre el hero: la caja que hoy paga las cuentas es la reserva
+          presencial y no se toca su embudo. Acá el visitante ya se convenció
+          de que sabemos de esto (5.0 en Google), que es el momento en que una
+          descarga de US$6,99 se lee como extensión de la marca y no como un
+          anuncio. El CTA es secundario (ghost, no verde): el verde sigue
+          reservado para la conversión de WhatsApp, según DESIGN.md. */}
+      <Reveal as="section" style={section}>
+        <SectionHeader
+          icon="wheel"
+          eyebrow="Tienda de setups"
+          title="¿Corres en casa? Llévate nuestros setups explicados"
+          text="Los mismos baselines que usamos con los pilotos en el simcenter, en PDF y listos para cargar: cada valor con su porqué, no una telemetría copiada. Para Assetto Corsa Competizione, iRacing, Le Mans Ultimate y EA WRC."
+        />
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 22 }}>
+          {['Descarga inmediata', 'Pago único desde US$6,99', 'En español', 'Actualizaciones v1.x gratis'].map((label) => (
+            <span
+              key={label}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '9px 14px',
+                borderRadius: 'var(--r-pill)',
+                background: 'var(--psr-panel)',
+                border: '1px solid var(--psr-border-soft)',
+                color: 'var(--psr-muted)',
+                fontWeight: 700,
+                fontSize: 13.5,
+              }}
+            >
+              <Icon name="check" size={15} /> {label}
+            </span>
+          ))}
+        </div>
+        <a
+          href={buildStoreLink('home-tienda')}
+          target="_blank"
+          rel="noopener"
+          data-psr-store="home_tienda"
+          style={{ ...buttonGhost, flex: '1 1 260px', maxWidth: 360 }}
+        >
+          <Icon name="wheel" size={18} /> Ver los packs de setups →
+        </a>
       </Reveal>
 
       {/* 6 · Ubicación y horario */}
