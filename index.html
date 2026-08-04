@@ -215,6 +215,23 @@
 
         <h2>Reservas</h2>
         <p><a href="https://wa.me/56984630196?text=Hola%2C%20quiero%20reservar%20una%20vuelta.%20%5BRef%3A%20web-home%5D">Reserva tu sesión por WhatsApp (+56 9 8463 0196)</a>.</p>
+
+        <!-- Tienda de setups. El CTA de CommercialSection.jsx (sección 5.5) sólo existe
+             dentro del bundle de React: un crawler sin JS —y el reparto de autoridad de
+             enlace hacia el subdominio de la tienda— no lo ve. Verificado el 2026-08-04
+             en producción: el HTML crudo de la home tenía CERO enlaces a
+             configuracion.patagoniasimracing.cl, mientras /simracers sí tenía 2. Este
+             bloque es el único enlace tienda↔marca que un buscador puede seguir desde la
+             página con más autoridad del dominio. Mismo UTM que buildStoreLink() para que
+             el clic no llegue sin atribución (utils/storeLink.js). -->
+        <h2>Tienda de setups</h2>
+        <p>
+          <a href="https://configuracion.patagoniasimracing.cl/packs?utm_source=psr-web&amp;utm_medium=cross-sell&amp;utm_campaign=home-noscript">Packs
+          de setups explicados para Assetto Corsa Competizione, iRacing, Le Mans Ultimate y EA
+          Sports WRC</a> — descarga inmediata, pago único desde US$6,99, en español.
+          También <a href="https://configuracion.patagoniasimracing.cl/pro?utm_source=psr-web&amp;utm_medium=cross-sell&amp;utm_campaign=home-noscript-pro">PSR
+          Pro</a>, la suscripción con todos los setups.
+        </p>
       </main>
     </noscript>
     <div id="root"></div>

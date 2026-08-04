@@ -2,6 +2,26 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "redirects": [
     {
+      "source": "/packs",
+      "destination": "https://configuracion.patagoniasimracing.cl/packs?utm_source=psr-web&utm_medium=cross-sell&utm_campaign=redirect-packs",
+      "permanent": true
+    },
+    {
+      "source": "/tienda",
+      "destination": "https://configuracion.patagoniasimracing.cl/packs?utm_source=psr-web&utm_medium=cross-sell&utm_campaign=redirect-tienda",
+      "permanent": true
+    },
+    {
+      "source": "/setups",
+      "destination": "https://configuracion.patagoniasimracing.cl/setups?utm_source=psr-web&utm_medium=cross-sell&utm_campaign=redirect-setups",
+      "permanent": true
+    },
+    {
+      "source": "/pro",
+      "destination": "https://configuracion.patagoniasimracing.cl/pro?utm_source=psr-web&utm_medium=cross-sell&utm_campaign=redirect-pro",
+      "permanent": true
+    },
+    {
       "source": "/(.*)",
       "has": [{ "type": "host", "value": "patagoniasimracing.cl" }],
       "destination": "https://www.patagoniasimracing.cl/$1",
