@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Abriendo WhatsApp | Patagonia SimRacing</title>
+<!--
+  /wa — puente MEDIBLE hacia WhatsApp.
+
+  POR QUE EXISTE: los CTA de PSR (bio IG/TikTok, boton del post GBP, primer
+  comentario FB, descripcion YT) apuntaban a wa.me DIRECTO. wa.me es de Meta:
+  el clic ocurre fuera del sitio, ninguna medicion nuestra lo ve, y el embudo
+  clic -> venta quedaba con 0 de 86 dias medidos por ~2 meses. Mandando el CTA
+  a esta ruta, el clic pasa por dominio propio y SI se puede contar.
+
+  QUE DISPARA (y por que ESE evento y no otro):
+    gtag('event','click', {link_url: <wa.me>})
+      -> el conector del pipeline (connectors/ga4_wa_clicks.py) pide a la GA4
+         Data API la dimension `linkUrl` con la metrica `eventCount` y filtra
+         por /wa\.me|whatsapp/. Esa dimension SOLO se puebla en el evento
+         `click`. Si alguien cambia este evento por uno con otro nombre, el
+         conector deja de ver los clics y no se entera: la serie simplemente
+         se queda en cero, que es como se veia el bug original.
+    Contact (Meta pixel + TikTok pixel + GA4)
+      -> alimenta la optimizacion de las campanas que Patricio SI paga desde
+         el Ad Center de IG. Esto no es telemetria: es la senal con la que la
+         plataforma decide a quien mostrar el anuncio.
+
+  SEGURIDAD: el destino es la constante WA de abajo, NUNCA el query string.
+  `ref` se sanea a [A-Za-z0-9_-]{1,24} y se inserta con textContent /
+  encodeURIComponent, nunca con innerHTML. No hay open redirect posible.
+
+  VENTAS > MEDICION: el boton visible funciona desde el primer frame y el
+  <noscript> redirige igual. Si la medicion falla, el cliente llega a WhatsApp
+  lo mismo; lo que se pierde es el dato, no la venta.
+-->
+<link rel="canonical" href="https://www.patagoniasimracing.cl/wa">
+<style>body{background:#0b1320;color:#eef2f7;font-family:system-ui,Arial,sans-serif;
+margin:0;padding:24px;line-height:1.6}main{max-width:520px;margin:12vh auto 0;text-align:center}
+h1{color:#7cc4ff;font-size:1.35rem;margin:0 0 8px}p{color:#9aa7b5;margin:0 0 4px}
+a.cta{display:inline-block;background:#25d366;color:#0b1320;padding:16px 30px;
+border-radius:30px;text-decoration:none;font-weight:800;margin:22px 0 8px;font-size:1.05rem}
+footer{color:#63707e;font-size:13px;margin-top:26px}
+footer a{color:#7cc4ff}</style>
+<noscript><meta http-equiv="refresh" content="0;url=https://wa.me/56984630196"></noscript>
+</head>
+<body><main>
+<h1>Abriendo WhatsApp…</h1>
+<p>Si no se abre solo, toca el botón.</p>
+<a class="cta" id="go" href="https://wa.me/56984630196">Escribir por WhatsApp</a>
+<footer>Patagonia SimRacing · Alto Varas Local 109, Puerto Varas · +56 9 8463 0196 ·
+Lun-Sáb 10:30-20:00 · <a href="https://www.patagoniasimracing.cl">patagoniasimracing.cl</a></footer>
+</main>
+<script>
+(function(){
+var GA='G-DG56H908WW',FB='1736361921055510',TT='D8M6HEJC77U235SQNT20';
+var WA='https://wa.me/56984630196';
+var MSG='Hola! Quiero reservar una sesión en Patagonia SimRacing 🏎️';
+
+/* ref = reel-code del pipeline (utils/conversion_links.reel_code, ej "W32-IG3").
+   Saneado duro: lo que no calce con el patron se descarta entero, no se recorta,
+   porque un ref a medias atribuiria la venta al reel equivocado. */
+var ref='';
+try{
+  var m=/[?&]ref=([A-Za-z0-9_-]{1,24})(?:&|$)/.exec(window.location.search);
+  if(m) ref=m[1];
+}catch(e){}
+
+/* El texto prellenado se arma ACA, no en el caption publicado. Asi el link que
+   la gente ve es "patagoniasimracing.cl/wa?ref=W32-IG3" y no un muro de
+   "%21%20%F0%9F..." (Patricio 2026-06-15: "que no salgan asi nunca mas").
+   El "(ref: X)" replica el formato de whatsapp_link() para que el codigo que
+   llega al telefono de Patricio sea el mismo que emite el pipeline. */
+var dest=WA+'?text='+encodeURIComponent(ref?MSG+' (ref: '+ref+')':MSG);
+var a=document.getElementById('go');
+if(a) a.setAttribute('href',dest);
+
+var ctx=ref?('wa_redirect_'+ref):'wa_redirect';
+var fired=false;
+function go(){ if(fired) return; fired=true; window.location.replace(dest); }
+
+var s=document.createElement('script');s.async=!0;
+s.src='https://www.googletagmanager.com/gtag/js?id='+GA;document.head.appendChild(s);
+window.dataLayer=window.dataLayer||[];
+window.gtag=function(){window.dataLayer.push(arguments)};
+window.gtag('js',new Date());window.gtag('config',GA);
+
+!function(f,b,e,v,n,t,x){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;x=b.getElementsByTagName(e)[0];x.parentNode.insertBefore(t,x)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+window.fbq('init',FB);window.fbq('track','PageView');
+
+!function(w,d,t){w.TiktokAnalyticsObject=t;var q=w[t]=w[t]||[];q.methods=['page','track','identify','instances','debug','on','off','once','ready','alias','group','enableCookie','disableCookie'];q.setAndDefer=function(e,n){e[n]=function(){e.push([n].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<q.methods.length;i++)q.setAndDefer(q,q.methods[i]);q.instance=function(e){for(var n=q._i[e]||[],i=0;i<q.methods.length;i++)q.setAndDefer(n,q.methods[i]);return n};q.load=function(e,n){var r='https://analytics.tiktok.com/i18n/pixel/events.js';q._i=q._i||{};q._i[e]=[];q._i[e]._u=r;q._t=q._t||{};q._t[e]=+new Date();q._o=q._o||{};q._o[e]=n||{};var o=d.createElement('script');o.type='text/javascript';o.async=!0;o.src=r+'?sdkid='+e+'&lib='+t;var a=d.getElementsByTagName('script')[0];a.parentNode.insertBefore(o,a)}}(window,document,'ttq');
+window.ttq.load(TT);window.ttq.page();
+
+try{window.fbq('track','Contact',{context:ctx})}catch(e){}
+try{window.ttq.track('Contact',{context:ctx})}catch(e){}
+try{window.gtag('event','contact',{method:'whatsapp',context:ctx})}catch(e){}
+
+/* EL evento que lee el pipeline. event_callback dispara el salto apenas el hit
+   sale; event_timeout es el techo de gtag. El setTimeout de 900ms es la red
+   para el caso en que gtag este bloqueado por un adblocker y el callback no
+   llegue nunca: ahi el cliente igual llega a WhatsApp, solo que sin dato. */
+try{
+  window.gtag('event','click',{
+    link_url:WA, link_domain:'wa.me', link_classes:'psr-wa-redirect',
+    link_id:ref||'wa', outbound:true,
+    event_callback:go, event_timeout:700
+  });
+}catch(e){}
+setTimeout(go,900);
+
+/* Si toca el boton antes de que salte solo, que no se dispare el replace
+   encima de la navegacion del <a>. */
+if(a) a.addEventListener('click',function(){fired=true;});
+})();
+</script>
+</body></html>
