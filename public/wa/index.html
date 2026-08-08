@@ -54,7 +54,15 @@ Lun-Sáb 10:30-20:00 · <a href="https://www.patagoniasimracing.cl">patagoniasim
 (function(){
 var GA='G-DG56H908WW',FB='1736361921055510',TT='D8M6HEJC77U235SQNT20';
 var WA='https://wa.me/56984630196';
-var MSG='Hola! Quiero reservar una sesión en Patagonia SimRacing 🏎️';
+/* SIN EMOJI, y no es una preferencia de estilo: wa.me reescribe el query del 302
+   y cambia por U+FFFD todo caracter con presentacion emoji. Medido en vivo el
+   2026-08-07 caracter por caracter (o, ', -, y hasta VS16 vuelven intactos; los
+   emoji vuelven "?"). Con el emoji, a TODO cliente que tocaba un CTA le llegaba
+   "...Patagonia SimRacing ?" en su caja de redaccion de WhatsApp — el canal que
+   cierra los grupos, o sea el 50,3% de la facturacion. El pipeline aplica la
+   misma regla en utils/conversion_links.wa_safe_prefill(); los dos lados TIENEN
+   que decir lo mismo (config/wa_redirect_contract.json:mensaje_prellenado). */
+var MSG='Hola! Quiero reservar una sesión en Patagonia SimRacing';
 
 /* ref = reel-code del pipeline (utils/conversion_links.reel_code, ej "W32-IG3").
    Saneado duro: lo que no calce con el patron se descarta entero, no se recorta,
